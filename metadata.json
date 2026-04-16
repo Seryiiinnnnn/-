@@ -1,0 +1,7 @@
+{
+  "name": "淘味",
+  "description": "一站式生活平台淘味的后台与前端展示。后端系统展示实时派单、骑手追踪与雪隆区地图动态；前端展示全品类生活服务。",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

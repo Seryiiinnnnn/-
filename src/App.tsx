@@ -1,0 +1,208 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import CustomerApp from './components/CustomerApp';
+import BackendDashboard from './components/BackendDashboard';
+import StatsDashboard from './components/StatsDashboard';
+import { LayoutDashboard, Smartphone, Activity, Sparkles, BarChart3 } from 'lucide-react';
+import { SystemStats, Order } from './types';
+
+// Approximate Klang Valley Bounds
+const WIDTH = 1200;
+const HEIGHT = 800;
+
+type View = 'customer' | 'backend' | 'analytics';
+
+export default function App() {
+  const [view, setView] = useState<View>('customer');
+  const [isOpening, setIsOpening] = useState(true);
+  const [stats, setStats] = useState<SystemStats>({
+    activeOrders: 0,
+    onlineRiders: 150,
+    deliveredToday: 14282,
+    avgDeliverTime: 28,
+    completedTotal: 840
+  });
+
+  const [orderPrefix, setOrderPrefix] = useState('TW');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const orderIdCounter = useRef(1000);
+
+  const updateStat = (key: keyof SystemStats, delta: number) => {
+    setStats(prev => {
+      const newVal = Math.max(0, (prev[key] as number) + delta);
+      return {
+        ...prev,
+        [key]: newVal
+      };
+    });
+  };
+
+  // Global Simulator for Orders
+  useEffect(() => {
+    const loop = setInterval(() => {
+      // Sync logic: Only spawn if riders are online and we haven't hit the cap relative to riders
+      const maxOrders = Math.max(5, Math.floor(stats.onlineRiders / 7));
+      
+      // If system is "down" (riders=0), clear orders and stop
+      if (stats.onlineRiders === 0) {
+        if (orders.length > 0) setOrders([]);
+        return;
+      }
+
+      if (Math.random() > 0.95 && orders.filter(o => o.status !== 'completed').length < maxOrders) {
+        orderIdCounter.current += 1;
+        const newOrder: Order = {
+          id: `${orderIdCounter.current}`,
+          customerPos: { x: Math.random() * WIDTH, y: Math.random() * HEIGHT },
+          pickupPos: { x: Math.random() * WIDTH, y: Math.random() * HEIGHT },
+          status: 'pending',
+          timestamp: Date.now(),
+          items: ['汉堡套餐', '可乐', '薯条'],
+          price: 25.50 + Math.random() * 20,
+          deliveryTime: 0
+        };
+        setOrders(prev => [newOrder, ...prev].slice(0, 50)); // Keep last 50
+        updateStat('activeOrders', 1);
+
+        // Auto complete after random time
+        setTimeout(() => {
+           setOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, status: 'completed' } : o));
+           updateStat('activeOrders', -1);
+           updateStat('completedTotal', 1);
+           updateStat('deliveredToday', 1);
+        }, 8000 + Math.random() * 5000);
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(loop);
+  }, [stats.onlineRiders, orders.length]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsOpening(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="relative min-h-screen bg-black overflow-hidden">
+      <AnimatePresence>
+        {isOpening && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1, filter: 'blur(20px)' }}
+            transition={{ duration: 1, ease: 'easeInOut' }}
+            className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+              className="relative"
+            >
+              <div className="absolute inset-0 bg-brand-primary blur-[100px] opacity-20" />
+              <h1 className="text-8xl font-black italic tracking-tighter logo-text uppercase mb-2 relative">
+                淘味
+              </h1>
+              <div className="flex items-center justify-center gap-2 text-brand-cream/60 tracking-[0.4em] text-[10px] font-bold uppercase transition-all">
+                <Sparkles className="w-3 h-3 text-brand-primary" />
+                淘味超级配送协议
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!isOpening && (
+        <>
+          {/* View Switcher Overlay */}
+          <div className="fixed top-24 right-6 z-[100] flex flex-col gap-2">
+            <button 
+              onClick={() => setView('customer')}
+              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'customer' ? 'bg-brand-primary border-brand-primary text-brand-cream' : 'bg-black/50 border-white/10 text-brand-primary/60 hover:border-white/20'}`}
+            >
+              <Smartphone className="w-4 h-4" />
+              终端：客户视角
+            </button>
+            <button 
+              onClick={() => setView('backend')}
+              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'backend' ? 'bg-brand-secondary border-brand-secondary text-brand-cream' : 'bg-black/50 border-white/10 text-brand-secondary/60 hover:border-white/20'}`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              终端：调度后台
+            </button>
+            <button 
+              onClick={() => setView('analytics')}
+              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'analytics' ? 'bg-accent-green border-accent-green text-black' : 'bg-black/50 border-white/10 text-accent-green/60 hover:border-white/20'}`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              核心看板
+            </button>
+          </div>
+
+          {/* Main View Container */}
+          <AnimatePresence mode="wait">
+            {view === 'customer' ? (
+              <motion.div
+                key="customer"
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <CustomerApp />
+              </motion.div>
+            ) : view === 'backend' ? (
+              <motion.div
+                key="backend"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <BackendDashboard 
+                  propsStats={stats} 
+                  propsUpdateStat={updateStat} 
+                  orderPrefix={orderPrefix} 
+                  onPrefixChange={setOrderPrefix} 
+                  orders={orders}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="analytics"
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -50 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <StatsDashboard 
+                  stats={stats} 
+                  updateStat={updateStat} 
+                  onBack={() => setView('backend')} 
+                  orderPrefix={orderPrefix}
+                  onPrefixChange={setOrderPrefix}
+                  orders={orders}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Floating System Status Toast */}
+          <div className="fixed bottom-6 left-6 z-[100] pointer-events-none">
+             <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="glass px-4 py-2 rounded flex items-center gap-3 border-brand-primary/30"
+             >
+                <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse shadow-[0_0_8px_#39ff14]" />
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-brand-cream tracking-[0.3em] uppercase font-mono">
+                   <Activity className="w-3 h-3" />
+                   淘味核心：实时安全连接
+                </div>
+             </motion.div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
