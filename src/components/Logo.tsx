@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../lib/utils';
+import logoImg from '../taowei-logo.png';
 
 interface LogoProps {
   className?: string;
@@ -18,7 +19,7 @@ export default function Logo({ className, size = 'md', showText = false }: LogoP
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <img 
-        src="/src/taowei-logo.png" 
+        src={logoImg} 
         alt="淘味 Logo" 
         className={cn("object-contain", sizeClasses[size])}
         onError={(e) => {

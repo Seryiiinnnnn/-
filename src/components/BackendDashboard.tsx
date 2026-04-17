@@ -37,6 +37,18 @@ export default function BackendDashboard({
     zoom: 9
   });
 
+  const [simulationSpeed, setSimulationSpeed] = useState(() => {
+    const saved = localStorage.getItem('taowei_sim_speed');
+    return saved ? parseFloat(saved) : 1;
+  });
+  
+  const [routeDensity, setRouteDensity] = useState(() => {
+    const saved = localStorage.getItem('taowei_route_density');
+    return saved ? parseInt(saved) : 6;
+  });
+
+  const [routeOffset, setRouteOffset] = useState(0);
+
   const [showNotification, setShowNotification] = useState(false);
   const [isAutoSpawning, setIsAutoSpawning] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -53,6 +65,23 @@ export default function BackendDashboard({
     logo: 'text-[#FF6B00]',
     border: isDarkMode ? 'border-white/10' : 'border-orange-200/30',
   };
+  // Save settings when changed
+  useEffect(() => {
+    localStorage.setItem('taowei_sim_speed', simulationSpeed.toString());
+  }, [simulationSpeed]);
+
+  useEffect(() => {
+    localStorage.setItem('taowei_route_density', routeDensity.toString());
+  }, [routeDensity]);
+
+  // Rotation logic for routes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRouteOffset(prev => prev + 1);
+    }, 5000 / simulationSpeed); // Rotate every 5 seconds adjusted by speed
+    return () => clearInterval(interval);
+  }, [simulationSpeed]);
+  
   // Sync Riders with Stats
   useEffect(() => {
     setRiders(prev => {
@@ -220,6 +249,78 @@ export default function BackendDashboard({
                        </div>
                     </div>
                   </div>
+
+                  <div className={cn("pt-2 border-t", themeClasses.border)}>
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">模拟动态控制</label>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[8px] opacity-40 uppercase tracking-widest">配送响应速度: {simulationSpeed}x</span>
+                          <span className="text-[8px] text-accent-green font-bold">加速开启</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0.2" 
+                          max="5" 
+                          step="0.1" 
+                          value={simulationSpeed} 
+                          onChange={(e) => setSimulationSpeed(parseFloat(e.target.value))}
+                          className="w-full accent-[#FF6B00] h-1 rounded-lg bg-white/10 appearance-none cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[8px] opacity-40 uppercase tracking-widest">活跃路线密度: {routeDensity}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="50" 
+                          step="1" 
+                          value={routeDensity} 
+                          onChange={(e) => setRouteDensity(parseInt(e.target.value))}
+                          className="w-full accent-[#FF6B00] h-1 rounded-lg bg-white/10 appearance-none cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={cn("pt-2 border-t", themeClasses.border)}>
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">自定义地图背景</label>
+                    <div className="flex flex-col gap-2">
+                      <label className={cn("flex items-center justify-center gap-2 py-2 border border-dashed rounded cursor-pointer hover:bg-white/5 transition-all text-[10px]", themeClasses.border)}>
+                        <MapPin className="w-3 h-3 text-[#FF6B00]" />
+                        <span className="opacity-60">上传本地地图照片</span>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                localStorage.setItem('taowei_custom_map', reader.result as string);
+                                window.location.reload();
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {localStorage.getItem('taowei_custom_map') && (
+                        <button 
+                          onClick={() => {
+                            localStorage.removeItem('taowei_custom_map');
+                            window.location.reload();
+                          }}
+                          className="text-[8px] text-red-500 uppercase font-bold text-center hover:underline"
+                        >
+                          重置为默认动态地图
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -350,10 +451,20 @@ export default function BackendDashboard({
         {/* Map Background Image */}
         <div className="absolute inset-0 z-0 scale-[1.02]">
           <img 
-            src={`https://maps.googleapis.com/maps/api/staticmap?center=${mapConfig.lat},${mapConfig.lng}&zoom=${mapConfig.zoom}&size=1280x800&scale=2&maptype=roadmap&key=${(import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY}&style=feature:all|element:all|saturation:-100|lightness:${isDarkMode ? -80 : 20}`} 
-            alt="Klang Valley Live Map"
+            src={localStorage.getItem('taowei_custom_map') || '/src/map-bg.png'} 
+            alt="Dispatch Map"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              // If local image fails and it was the user-set one, cleanup
+              if (localStorage.getItem('taowei_custom_map')) {
+                localStorage.removeItem('taowei_custom_map');
+                window.location.reload();
+              } else {
+                // Fallback to dynamic Google Map as the ultimate backup
+                (e.target as HTMLImageElement).src = `https://maps.googleapis.com/maps/api/staticmap?center=${mapConfig.lat},${mapConfig.lng}&zoom=${mapConfig.zoom}&size=1280x800&scale=2&maptype=roadmap&key=${(import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY}&style=feature:all|element:all|saturation:-100|lightness:${isDarkMode ? -80 : 20}`;
+              }
+            }}
           />
           <div className={cn("absolute inset-0 pointer-events-none", isDarkMode ? "bg-black/20" : "bg-white/10")} />
         </div>
@@ -375,10 +486,14 @@ export default function BackendDashboard({
               <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
               <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <filter id="glow-yellow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
             
             <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="var(--color-accent-amber)" />
-              <stop offset="100%" stopColor="var(--color-accent-green)" />
+              <stop offset="0%" stopColor="#FFFF00" />
+              <stop offset="100%" stopColor="#39ff14" />
             </linearGradient>
           </defs>
           
@@ -387,78 +502,106 @@ export default function BackendDashboard({
           <text x="560" y="420" fill={isDarkMode ? "white" : "maroon"} fontSize="10" className="opacity-80 tracking-[0.2em] font-bold">吉隆坡中心区</text>
 
           {/* Active Pulse Lines for ALL non-completed orders */}
-          {orders.filter(o => o.status !== 'completed').map(order => {
-            const assignedRider = riders.length > 0 ? riders.reduce((prev, curr) => {
-              const dPrev = Math.hypot(prev.pos.x - order.pickupPos.x, prev.pos.y - order.pickupPos.y);
-              const dCurr = Math.hypot(curr.pos.x - order.pickupPos.x, curr.pos.y - order.pickupPos.y);
-              return dCurr < dPrev ? curr : prev;
-            }) : null;
+          {(() => {
+            const activeOrders = orders.filter(o => o.status !== 'completed');
+            if (activeOrders.length === 0) return null;
+            
+            // Circularly select routes based on density and offset
+            return Array.from({ length: Math.min(routeDensity, activeOrders.length) }).map((_, i) => {
+              const orderIndex = (i + routeOffset) % activeOrders.length;
+              const order = activeOrders[orderIndex];
+              
+              const assignedRider = riders.length > 0 ? riders.reduce((prev, curr) => {
+                const dPrev = Math.hypot(prev.pos.x - order.pickupPos.x, prev.pos.y - order.pickupPos.y);
+                const dCurr = Math.hypot(curr.pos.x - order.pickupPos.x, curr.pos.y - order.pickupPos.y);
+                return dCurr < dPrev ? curr : prev;
+              }) : null;
 
-            return (
-              <motion.g key={`route-${order.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                {assignedRider && (
+              // Generate a curved path if order ID ends with a digit that is even
+              const idNumeric = order.id.replace(/\D/g, '');
+              const isCurved = idNumeric ? parseInt(idNumeric) % 2 === 0 : false;
+              
+              const getPath = (start: Point, end: Point) => {
+                if (!isCurved) return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+                const midX = (start.x + end.x) / 2;
+                const midY = (start.y + end.y) / 2;
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                // Offset perpendicular to the segment
+                const ctrlX = midX - dy * 0.15;
+                const ctrlY = midY + dx * 0.15;
+                return `M ${start.x} ${start.y} Q ${ctrlX} ${ctrlY} ${end.x} ${end.y}`;
+              };
+
+              const riderToPickupPath = assignedRider ? getPath(assignedRider.pos, order.pickupPos) : "";
+              const pickupToCustomerPath = getPath(order.pickupPos, order.customerPos);
+
+              return (
+                <motion.g key={`route-${order.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {assignedRider && (
+                    <motion.path
+                      d={riderToPickupPath}
+                      stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.2)"}
+                      strokeWidth="1"
+                      strokeDasharray="4 2"
+                      fill="none"
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.5 / simulationSpeed }}
+                    />
+                  )}
                   <motion.path
-                    d={`M ${assignedRider.pos.x} ${assignedRider.pos.y} L ${order.pickupPos.x} ${order.pickupPos.y}`}
-                    stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.2)"}
-                    strokeWidth="1"
-                    strokeDasharray="4 2"
+                    d={pickupToCustomerPath}
+                    stroke="url(#routeGradient)"
+                    strokeWidth="3"
                     fill="none"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.5 }}
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.8 }}
+                    transition={{ duration: 1 / simulationSpeed, ease: "easeOut" }}
+                    filter="url(#glow-yellow)"
                   />
-                )}
-                <motion.path
-                  d={`M ${order.pickupPos.x} ${order.pickupPos.y} L ${order.customerPos.x} ${order.customerPos.y}`}
-                  stroke="url(#routeGradient)"
-                  strokeWidth="3"
-                  fill="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 0.8 }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                  filter="url(#glow-green)"
-                />
-                <motion.circle 
-                  cx={order.pickupPos.x} 
-                  cy={order.pickupPos.y} 
-                  r="4" 
-                  fill="var(--color-accent-amber)"
-                  filter="url(#glow-amber)"
-                />
-                <motion.circle 
-                  cx={order.customerPos.x} 
-                  cy={order.customerPos.y} 
-                  r="4" 
-                  fill="var(--color-accent-green)"
-                  filter="url(#glow-green)"
-                />
-                {/* Animated Signal Particle */}
-                <motion.circle
-                  r="3"
-                  fill="white"
-                  filter="url(#glow-cyan)"
-                  initial={{ offsetDistance: "0%" }}
-                  animate={{ offsetDistance: "100%" }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  style={{ 
-                    offsetPath: `path("M ${order.pickupPos.x} ${order.pickupPos.y} L ${order.customerPos.x} ${order.customerPos.y}")`,
-                    position: 'absolute'
-                  }}
-                />
-                <motion.circle
-                  r="5"
-                  stroke="white"
-                  strokeWidth="1"
-                  fill="transparent"
-                  initial={{ scale: 0, opacity: 1 }}
-                  animate={{ scale: 3, opacity: 0 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                  cx={order.pickupPos.x}
-                  cy={order.pickupPos.y}
-                />
-              </motion.g>
-            );
-          })}
+                  <motion.circle 
+                    cx={order.pickupPos.x} 
+                    cy={order.pickupPos.y} 
+                    r="4" 
+                    fill="#FFFF00"
+                    filter="url(#glow-yellow)"
+                  />
+                  <motion.circle 
+                    cx={order.customerPos.x} 
+                    cy={order.customerPos.y} 
+                    r="4" 
+                    fill="var(--color-accent-green)"
+                    filter="url(#glow-green)"
+                  />
+                  {/* Animated Signal Particle */}
+                  <motion.circle
+                    r="3"
+                    fill="white"
+                    filter="url(#glow-cyan)"
+                    initial={{ offsetDistance: "0%" }}
+                    animate={{ offsetDistance: "100%" }}
+                    transition={{ duration: 1.5 / simulationSpeed, repeat: Infinity, ease: "linear" }}
+                    style={{ 
+                      offsetPath: `path("${pickupToCustomerPath}")`,
+                      position: 'absolute'
+                    }}
+                  />
+                  <motion.circle
+                    r="5"
+                    stroke="#FFFF00"
+                    strokeWidth="1"
+                    fill="transparent"
+                    initial={{ scale: 0, opacity: 1 }}
+                    animate={{ scale: 3, opacity: 0 }}
+                    transition={{ duration: 2 / simulationSpeed, repeat: Infinity, ease: "easeOut" }}
+                    cx={order.pickupPos.x}
+                    cy={order.pickupPos.y}
+                  />
+                </motion.g>
+              );
+            });
+          })()}
 
           {/* Rider Light Points */}
           {stats.onlineRiders > 0 && riders.map(rider => {
@@ -469,12 +612,12 @@ export default function BackendDashboard({
                 cx={rider.pos.x}
                 cy={rider.pos.y}
                 r={isAssigned ? 5 : 2}
-                fill={isAssigned ? "var(--color-accent-green)" : isDarkMode ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.6)"}
+                fill={isAssigned ? "#FFFF00" : "#39ff14"}
                 className={cn(
                   "transition-all duration-300",
                   isAssigned ? "opacity-100" : "opacity-60"
                 )}
-                filter={isAssigned ? "url(#glow-green)" : "url(#glow-cyan)"}
+                filter={isAssigned ? "url(#glow-yellow)" : "url(#glow-green)"}
               />
             );
           })}

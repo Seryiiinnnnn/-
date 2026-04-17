@@ -26,7 +26,58 @@ export default function App() {
   });
 
   const [orderPrefix, setOrderPrefix] = useState('TW');
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>([
+    {
+      id: '1000',
+      customerPos: { x: 400, y: 300 },
+      pickupPos: { x: 600, y: 450 },
+      status: 'pending',
+      timestamp: Date.now() - 50000,
+      items: ['金林盆菜 x 2'],
+      price: 798.00,
+      deliveryTime: 0
+    },
+    {
+      id: '999',
+      customerPos: { x: 800, y: 200 },
+      pickupPos: { x: 600, y: 450 },
+      status: 'pending',
+      timestamp: Date.now() - 20000,
+      items: ['金林盆菜 x 1'],
+      price: 399.00,
+      deliveryTime: 0
+    },
+    {
+      id: '998',
+      customerPos: { x: 200, y: 500 },
+      pickupPos: { x: 600, y: 450 },
+      status: 'pending',
+      timestamp: Date.now() - 10000,
+      items: ['金林盆菜 x 3'],
+      price: 1197.00,
+      deliveryTime: 0
+    },
+    {
+      id: '997',
+      customerPos: { x: 900, y: 600 },
+      pickupPos: { x: 600, y: 450 },
+      status: 'pending',
+      timestamp: Date.now() - 5000,
+      items: ['金林盆菜 x 1'],
+      price: 399.00,
+      deliveryTime: 0
+    },
+    {
+      id: '996',
+      customerPos: { x: 300, y: 150 },
+      pickupPos: { x: 600, y: 450 },
+      status: 'pending',
+      timestamp: Date.now() - 1000,
+      items: ['金林盆菜 x 2'],
+      price: 798.00,
+      deliveryTime: 0
+    }
+  ]);
   const orderIdCounter = useRef(1000);
 
   const updateStat = (key: keyof SystemStats, delta: number) => {
@@ -53,14 +104,20 @@ export default function App() {
 
       if (Math.random() > 0.95 && orders.filter(o => o.status !== 'completed').length < maxOrders) {
         orderIdCounter.current += 1;
+        
+        // 70% chance for Jinlin Pencai order, 30% for others
+        const isPencai = Math.random() < 0.7;
+        // Random quantity for Pencai (1 to 3)
+        const quantity = isPencai ? Math.floor(Math.random() * 3) + 1 : 1;
+        
         const newOrder: Order = {
           id: `${orderIdCounter.current}`,
           customerPos: { x: Math.random() * WIDTH, y: Math.random() * HEIGHT },
           pickupPos: { x: Math.random() * WIDTH, y: Math.random() * HEIGHT },
           status: 'pending',
           timestamp: Date.now(),
-          items: ['汉堡套餐', '可乐', '薯条'],
-          price: 25.50 + Math.random() * 20,
+          items: isPencai ? [`金林盆菜 x ${quantity}`] : ['汉堡套餐', '可乐', '薯条'],
+          price: isPencai ? (399.00 * quantity) : (25.50 + Math.random() * 20),
           deliveryTime: 0
         };
         setOrders(prev => [newOrder, ...prev].slice(0, 50)); // Keep last 50

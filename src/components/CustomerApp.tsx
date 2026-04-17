@@ -27,6 +27,10 @@ import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Category, Product } from '../types';
 
+// Asset Imports
+import pencaiImg from '../pencai.png';
+import heroImg from '../hero-pic.jpeg';
+
 const CATEGORIES: { label: string; icon: any; color: string }[] = [
   { label: '美食外卖', icon: Utensils, color: 'bg-orange-500' },
   { label: '生鲜买菜', icon: Apple, color: 'bg-green-500' },
@@ -36,7 +40,7 @@ const CATEGORIES: { label: string; icon: any; color: string }[] = [
 ];
 
 const INITIAL_PRODUCTS: Product[] = [
-  { id: '9', name: '团圆大盆菜', price: 399.00, category: '美食外卖', image: '/src/pencai.png', rating: 5.0 },
+  { id: '9', name: '金林盆菜', price: 399.00, category: '美食外卖', image: pencaiImg, rating: 5.0 },
   { id: '1', name: '极品和牛堡', price: 32.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1000&auto=format&fit=crop', rating: 4.8 },
   { id: '2', name: '新鲜有机菠菜', price: 5.50, category: '生鲜买菜', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?q=80&w=1000&auto=format&fit=crop', rating: 4.5 },
   { id: '3', name: '强力止痛片', price: 12.00, category: '送药上门', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=1000&auto=format&fit=crop', rating: 4.9 },
@@ -62,12 +66,15 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
   const [heroImage, setHeroImage] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
-        return localStorage.getItem('taowei_hero_image') || '/src/hero-pic.jpeg';
+        const saved = localStorage.getItem('taowei_hero_image');
+        // If it's a relative path or the old dev path, use the imported one
+        if (!saved || saved.includes('/src/hero-pic.jpeg')) return heroImg;
+        return saved;
       }
     } catch (e) {
       console.error('Failed to load hero image from localStorage', e);
     }
-    return '/src/hero-pic.jpeg';
+    return heroImg;
   });
 
   const [isEditingHero, setIsEditingHero] = useState(false);
@@ -86,7 +93,20 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('taowei_products');
-        return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+        let parsed: Product[] = saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+        
+        // Data Migration: Ensure product '9' (Pencai) uses the imported asset and correctly named
+        parsed = parsed.map(p => {
+          if (p.id === '9') {
+            const needsUpdate = p.image.includes('src/pencai.png') || !p.image || p.name === '团圆大盆菜';
+            if (needsUpdate) {
+              return { ...p, image: pencaiImg, name: '金林盆菜' };
+            }
+          }
+          return p;
+        });
+        
+        return parsed;
       }
     } catch (e) {
       console.error('Failed to load products from localStorage', e);
