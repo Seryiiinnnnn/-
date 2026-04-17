@@ -19,7 +19,9 @@ import {
   X,
   Check,
   LayoutDashboard,
-  BarChart3
+  BarChart3,
+  Zap,
+  Gift
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Category, Product } from '../types';
@@ -33,6 +35,7 @@ const CATEGORIES: { label: string; icon: any; color: string }[] = [
 ];
 
 const INITIAL_PRODUCTS: Product[] = [
+  { id: '9', name: '团圆大盆菜', price: 399.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?q=80&w=1000&auto=format&fit=crop', rating: 5.0 },
   { id: '1', name: '极品和牛堡', price: 32.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1000&auto=format&fit=crop', rating: 4.8 },
   { id: '2', name: '新鲜有机菠菜', price: 5.50, category: '生鲜买菜', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?q=80&w=1000&auto=format&fit=crop', rating: 4.5 },
   { id: '3', name: '强力止痛片', price: 12.00, category: '送药上门', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=1000&auto=format&fit=crop', rating: 4.9 },
@@ -55,21 +58,56 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
   
   // Persistence: Load from localStorage
   const [heroImage, setHeroImage] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('taowei_hero_image') || 'https://images.unsplash.com/photo-1624513693838-892837f8f98a?q=80&w=1600&auto=format&fit=crop';
+    try {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem('taowei_hero_image') || 'https://images.unsplash.com/photo-1624513693838-892837f8f98a?q=80&w=1600&auto=format&fit=crop';
+      }
+    } catch (e) {
+      console.error('Failed to load hero image from localStorage', e);
     }
     return 'https://images.unsplash.com/photo-1624513693838-892837f8f98a?q=80&w=1600&auto=format&fit=crop';
   });
 
   const [isEditingHero, setIsEditingHero] = useState(false);
+  const [showOrderNotification, setShowOrderNotification] = useState(false);
 
-  // Persistence: Save to localStorage whenever heroImage changes
+  // Persistence: Save to localStorage whenever heroImage or products change
   useEffect(() => {
-    localStorage.setItem('taowei_hero_image', heroImage);
+    try {
+      localStorage.setItem('taowei_hero_image', heroImage);
+    } catch (e) {
+      console.warn('Storage quota likely exceeded. Image might not persist.');
+    }
   }, [heroImage]);
 
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('taowei_products');
+        return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      }
+    } catch (e) {
+      console.error('Failed to load products from localStorage', e);
+    }
+    return INITIAL_PRODUCTS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('taowei_products', JSON.stringify(products));
+    } catch (e) {
+      console.warn('Storage quota likely exceeded. Product list might not persist.');
+    }
+  }, [products]);
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const handleOrder = () => {
+    setShowOrderNotification(true);
+    // Auto hide after 8 seconds due to long content
+    setTimeout(() => setShowOrderNotification(false), 8000);
+  };
+
 
   const filteredProducts = selectedCategory === '全部' 
     ? products 
@@ -212,7 +250,10 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
               <h2 className="text-3xl sm:text-5xl font-black tracking-tighter mb-2 leading-none uppercase text-white">
                 极速送达<br /><span className="text-brand-primary italic">淘出</span>品味
               </h2>
-              <button className="mt-4 bg-brand-primary hover:bg-brand-primary/80 text-black font-black px-6 py-2.5 rounded-full transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[10px] flex items-center gap-2">
+              <button 
+                onClick={handleOrder}
+                className="mt-4 bg-brand-primary hover:bg-brand-primary/80 text-black font-black px-6 py-2.5 rounded-full transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[10px] flex items-center gap-2"
+              >
                 立即下单 <ChevronRight className="w-4 h-4" />
               </button>
             </motion.div>
@@ -277,7 +318,10 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
                     <h4 className={cn("font-bold text-sm line-clamp-1 mb-1", themeClasses.textInvert)}>{product.name}</h4>
                     <div className="flex items-center justify-between">
                       <p className={cn("text-sm font-black italic", isDarkMode ? "text-brand-primary" : "text-orange-600")}>RM {product.price.toFixed(2)}</p>
-                      <button className={cn("w-7 h-7 rounded-lg transition-all flex items-center justify-center", isDarkMode ? "bg-white/5 border border-white/10 text-white" : "bg-zinc-900 text-white")}>
+                      <button 
+                        onClick={handleOrder}
+                        className={cn("w-7 h-7 rounded-lg transition-all flex items-center justify-center", isDarkMode ? "bg-white/5 border border-white/10 text-white" : "bg-zinc-900 text-white")}
+                      >
                         <PlusCircle className="w-4 h-4" />
                       </button>
                     </div>
@@ -288,6 +332,69 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
           </div>
         </section>
       </main>
+
+      {/* Order Status Notification */}
+      <AnimatePresence>
+        {showOrderNotification && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowOrderNotification(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md"
+            >
+              <div className={cn(
+                "p-8 rounded-[2.5rem] shadow-2xl border backdrop-blur-3xl overflow-hidden",
+                isDarkMode ? "bg-zinc-900/90 border-brand-primary/20" : "bg-white/95 border-orange-200"
+              )}>
+                {/* Top Accent Line */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-primary via-orange-400 to-amber-400" />
+                
+                <div className="flex flex-col items-center text-center gap-6">
+                  <div className="w-20 h-20 rounded-3xl bg-brand-primary/10 flex items-center justify-center">
+                    <Zap className="w-10 h-10 text-brand-primary animate-pulse shadow-[0_0_20px_rgba(233,90,50,0.5)]" />
+                  </div>
+                  
+                  <div className="space-y-4 w-full">
+                    <div>
+                      <p className="font-black text-xs uppercase tracking-[0.3em] text-brand-primary mb-2">配送情报：载入中</p>
+                      <h4 className={cn("text-xl font-black tracking-tight", isDarkMode ? "text-white" : "text-zinc-900")}>
+                        您的盆菜正在配送中，<br />预计30分钟内到达。
+                      </h4>
+                    </div>
+                    
+                    {/* Coupon Card */}
+                    <div className={cn(
+                      "p-6 rounded-2xl border border-dashed flex flex-col items-center justify-center text-center",
+                      isDarkMode ? "bg-white/5 border-white/20" : "bg-orange-50 border-orange-200"
+                    )}>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase mb-2 tracking-widest">感谢您的耐心等候</p>
+                      <div className="flex flex-col items-center gap-3">
+                         <Gift className="w-8 h-8 text-brand-primary" />
+                         <span className="font-black text-brand-primary text-sm uppercase italic tracking-tighter">金林餐厅专属优惠券已到账</span>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => setShowOrderNotification(false)}
+                      className="w-full py-4 bg-brand-primary text-black font-black uppercase tracking-widest rounded-xl hover:scale-[1.02] transition-transform shadow-xl shadow-brand-primary/20"
+                    >
+                      确认并继续
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Product Modal */}
       <AnimatePresence>
@@ -425,16 +532,44 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-2">海报图片 URL</label>
-                  <div className="flex gap-4 items-center">
-                    <input 
-                      type="text" 
-                      value={editingProduct.image}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                      className={cn("flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-brand-primary font-mono text-xs", themeClasses.input)}
-                    />
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-lg">
-                      <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-2">上传本地图片 / 海报图片 URL</label>
+                  <div className="flex flex-col gap-4">
+                    <label className={cn(
+                      "flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:bg-white/5",
+                      isDarkMode ? "border-white/10" : "border-zinc-200"
+                    )}>
+                      <div className="flex flex-col items-center justify-center">
+                        <PlusCircle className="w-6 h-6 text-zinc-500 mb-1" />
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">上传照片</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && editingProduct) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setEditingProduct({ ...editingProduct, image: reader.result as string });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    <div className="flex gap-4 items-center">
+                      <input 
+                        type="text" 
+                        value={editingProduct.image.startsWith('data:') ? '已上传本地图片' : editingProduct.image}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
+                        className={cn("flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-brand-primary font-mono text-xs", themeClasses.input)}
+                        placeholder="或输入外部图片 URL..."
+                      />
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-lg bg-black/20">
+                        <img src={editingProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
                     </div>
                   </div>
                 </div>

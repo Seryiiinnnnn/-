@@ -287,10 +287,17 @@ export default function BackendDashboard({
                     <div className="flex items-center justify-between font-mono text-[9px] opacity-40">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
-                        吉隆坡市中心
+                        吉隆坡中心区
                       </div>
                       <span className={cn(order.status === 'completed' ? "text-accent-green" : "text-zinc-500")}>
-                        {order.status === 'completed' ? "已送达" : new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {order.status === 'completed' ? (
+                          "已送达"
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 animate-pulse" />
+                            <LiveTimer startTime={order.timestamp} />
+                          </div>
+                        )}
                       </span>
                     </div>
                   </motion.div>
@@ -462,20 +469,35 @@ export default function BackendDashboard({
                 <p className="text-[9px] uppercase tracking-widest opacity-50">本地系统时间</p>
                 <p className="text-sm font-bold text-white uppercase font-mono">{new Date().toLocaleTimeString()}</p>
              </div>
+             {activeOrder && activeOrder.status !== 'completed' && (
+                <div className="text-right border-l border-white/10 pl-6">
+                  <p className="text-[9px] uppercase tracking-widest text-accent-amber">当前派送耗时</p>
+                  <p className="text-sm font-bold text-accent-amber uppercase font-mono">
+                    <LiveTimer startTime={activeOrder.timestamp} pulse />
+                  </p>
+                </div>
+             )}
           </div>
         </div>
 
         <AnimatePresence>
           {showNotification && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: -20, x: "-50%" }}
-              className="absolute top-8 left-1/2 z-[100] bg-accent-green text-black px-6 py-3 rounded-sm font-black shadow-[0_0_30px_rgba(57,255,20,0.3)] flex items-center gap-3 uppercase tracking-tighter"
-            >
-              <ShieldCheck className="w-5 h-5" />
-              所有订单已完成 - 系统进入待命状态
-            </motion.div>
+            <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="bg-accent-green text-black px-12 py-8 rounded-sm font-black shadow-[0_0_50px_rgba(57,255,20,0.4)] flex flex-col items-center gap-4 uppercase tracking-tighter border-4 border-black/20 pointer-events-auto"
+              >
+                <div className="w-16 h-16 rounded-full bg-black/10 flex items-center justify-center">
+                  <ShieldCheck className="w-8 h-8" />
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl mb-1">所有订单已完成</p>
+                  <p className="text-[10px] tracking-[0.4em] opacity-60">系统进入待命状态 | 调度核心就绪</p>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 
@@ -491,7 +513,13 @@ export default function BackendDashboard({
               
               <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-accent-amber mb-2">检测到新配送序列</h3>
               <p className="font-mono text-lg font-bold text-white tracking-widest mb-1">ID: {orderPrefix}-{activeOrder.id}</p>
-              <p className="font-mono text-2xl font-bold text-accent-amber my-2">智能派单中...</p>
+              <div className="flex flex-col my-3">
+                <p className="font-mono text-xs text-zinc-500 uppercase tracking-widest mb-1">实时配送计时</p>
+                <div className="text-4xl font-black text-accent-amber font-mono">
+                   <LiveTimer startTime={activeOrder.timestamp} />
+                </div>
+              </div>
+              <p className="font-mono text-xl font-bold text-accent-amber my-2">智能派单中...</p>
               <div className="flex items-center justify-center gap-2 text-[10px] text-accent-green uppercase font-bold tracking-widest mt-2">
                 <Zap className="w-3 h-3" />
                 路线优化已完成
@@ -501,6 +529,30 @@ export default function BackendDashboard({
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+function LiveTimer({ startTime, pulse = false }: { startTime: number, pulse?: boolean }) {
+  const [ticks, setTicks] = useState(0);
+  
+  useEffect(() => {
+    const t = setInterval(() => setTicks(prev => prev + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+
+  return (
+    <motion.span
+      key={s}
+      initial={pulse ? { scale: 1.1, opacity: 0.8 } : false}
+      animate={{ scale: 1, opacity: 1 }}
+      className="inline-block"
+    >
+      {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+    </motion.span>
   );
 }
 
