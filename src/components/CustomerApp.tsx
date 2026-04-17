@@ -23,6 +23,7 @@ import {
   Zap,
   Gift
 } from 'lucide-react';
+import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Category, Product } from '../types';
 
@@ -35,7 +36,7 @@ const CATEGORIES: { label: string; icon: any; color: string }[] = [
 ];
 
 const INITIAL_PRODUCTS: Product[] = [
-  { id: '9', name: '团圆大盆菜', price: 399.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?q=80&w=1000&auto=format&fit=crop', rating: 5.0 },
+  { id: '9', name: '团圆大盆菜', price: 399.00, category: '美食外卖', image: '/src/pencai.png', rating: 5.0 },
   { id: '1', name: '极品和牛堡', price: 32.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1000&auto=format&fit=crop', rating: 4.8 },
   { id: '2', name: '新鲜有机菠菜', price: 5.50, category: '生鲜买菜', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?q=80&w=1000&auto=format&fit=crop', rating: 4.5 },
   { id: '3', name: '强力止痛片', price: 12.00, category: '送药上门', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=1000&auto=format&fit=crop', rating: 4.9 },
@@ -47,12 +48,13 @@ const INITIAL_PRODUCTS: Product[] = [
 ];
 
 interface CustomerAppProps {
+  isDarkMode: boolean;
+  setIsDarkMode: (val: boolean) => void;
   onNavigate?: (view: 'customer' | 'backend' | 'analytics') => void;
 }
 
-export default function CustomerApp({ onNavigate }: CustomerAppProps) {
+export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: CustomerAppProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | '全部'>('全部');
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   
@@ -60,12 +62,12 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
   const [heroImage, setHeroImage] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
-        return localStorage.getItem('taowei_hero_image') || 'https://images.unsplash.com/photo-1624513693838-892837f8f98a?q=80&w=1600&auto=format&fit=crop';
+        return localStorage.getItem('taowei_hero_image') || '/src/hero-pic.jpeg';
       }
     } catch (e) {
       console.error('Failed to load hero image from localStorage', e);
     }
-    return 'https://images.unsplash.com/photo-1624513693838-892837f8f98a?q=80&w=1600&auto=format&fit=crop';
+    return '/src/hero-pic.jpeg';
   });
 
   const [isEditingHero, setIsEditingHero] = useState(false);
@@ -125,7 +127,7 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
     input: isDarkMode ? 'bg-white/5 border-white/10' : 'bg-zinc-100 border-zinc-200 text-zinc-900',
     textMuted: isDarkMode ? 'text-zinc-400' : 'text-zinc-500',
     textInvert: isDarkMode ? 'text-white' : 'text-zinc-900',
-    logo: isDarkMode ? 'text-brand-cream' : 'text-orange-600',
+    logo: 'text-[#FF6B00]',
   };
 
   return (
@@ -134,7 +136,7 @@ export default function CustomerApp({ onNavigate }: CustomerAppProps) {
       <header className={cn("sticky top-0 z-50 backdrop-blur-xl border-b px-4 py-3 transition-colors duration-500", themeClasses.header)}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className={cn("text-2xl font-black italic tracking-tighter logo-text", themeClasses.logo)}>淘味</h1>
+            <Logo size="md" />
             <div className={cn("hidden lg:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest font-mono opacity-60", themeClasses.textInvert)}>
               <MapPin className="w-4 h-4 text-brand-primary" />
               吉隆坡

@@ -4,16 +4,20 @@ import {
   TrendingUp, Users, Zap, ShieldCheck, 
   BarChart3, Activity, Clock, Package,
   Plus, Minus, Settings, ChevronLeft,
-  ArrowUp, ArrowDown, Play, Pause
+  ArrowUp, ArrowDown, Play, Pause,
+  Sun, Moon
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area
 } from 'recharts';
 import { SystemStats, Order } from '../types';
+import Logo from './Logo';
 import { cn } from '../lib/utils';
 
 interface StatsDashboardProps {
+  isDarkMode: boolean;
+  setIsDarkMode: (val: boolean) => void;
   stats: SystemStats;
   updateStat: (key: keyof SystemStats, delta: number) => void;
   onBack?: () => void;
@@ -33,6 +37,8 @@ const MOCK_HISTORICAL_DATA = [
 ];
 
 export default function StatsDashboard({ 
+  isDarkMode,
+  setIsDarkMode,
   stats, 
   updateStat, 
   onBack, 
@@ -125,29 +131,43 @@ export default function StatsDashboard({
     }));
   };
 
+  const themeClasses = {
+    bg: isDarkMode ? 'bg-[#05070a] text-zinc-400' : 'bg-[#fdf4e3] text-zinc-700',
+    glass: isDarkMode ? 'bg-white/[0.02] border-white/5' : 'bg-white/70 border-brand-primary/10 shadow-sm',
+    card: isDarkMode ? 'bg-white/[0.02] border-white/5' : 'bg-white/80 border-brand-primary/5 shadow-sm',
+    input: isDarkMode ? 'bg-black/40 border-white/10' : 'bg-white border-brand-primary/20 text-zinc-900',
+    textMain: isDarkMode ? 'text-white' : 'text-zinc-900',
+    textMuted: isDarkMode ? 'text-zinc-500' : 'text-orange-900/40',
+    logo: 'text-[#FF6B00]',
+    border: isDarkMode ? 'border-white/10' : 'border-orange-200/30',
+  };
+
   return (
-    <div className="min-h-screen bg-[#05070a] text-zinc-400 p-8 font-sans relative overflow-hidden">
+    <div className={cn("min-h-screen p-8 font-sans relative overflow-hidden transition-colors duration-500", themeClasses.bg)}>
       {/* Global Completion Notification */}
       <AnimatePresence>
         {showCompletionToast && (
           <motion.div 
-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] glass px-12 py-8 rounded-3xl border-2 border-accent-green shadow-[0_0_100px_rgba(57,255,20,0.2)] flex flex-col items-center gap-4 text-center backdrop-blur-3xl"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className={cn(
+              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] px-16 py-12 rounded-[40px] border-2 shadow-[0_0_150px_rgba(255,107,0,0.3)] flex flex-col items-center gap-6 text-center backdrop-blur-[40px]", 
+              isDarkMode ? "bg-black/60 border-[#FF6B00]/40" : "bg-white/80 border-[#FF6B00]/30"
+            )}
           >
-            <div className="w-20 h-20 bg-accent-green/20 rounded-full flex items-center justify-center border-2 border-accent-green/40">
-               <ShieldCheck className="w-10 h-10 text-accent-green animate-bounce" />
+            <div className="w-24 h-24 bg-[#FF6B00]/10 rounded-full flex items-center justify-center border-2 border-[#FF6B00]/40 shadow-[0_0_30px_rgba(255,107,0,0.2)]">
+               <ShieldCheck className="w-12 h-12 text-[#FF6B00] animate-bounce" />
             </div>
-            <div>
-              <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">全部订单已完成</h2>
-              <p className="text-accent-green font-mono text-sm tracking-[0.2em] mt-2 uppercase">System Status: All Operations Success</p>
+            <div className="space-y-2">
+              <h2 className={cn("text-5xl font-black italic uppercase tracking-tighter", isDarkMode ? "text-white" : "text-zinc-900")}>全部订单已完成</h2>
+              <p className="text-[#FF6B00] font-mono text-xs tracking-[0.3em] font-bold uppercase opacity-80">System Status: All Operations Success</p>
             </div>
             <button 
               onClick={() => setShowCompletionToast(false)}
-              className="mt-4 px-8 py-3 bg-accent-green text-black font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-transform"
+              className="mt-6 px-12 py-4 bg-[#FF6B00] text-white font-black uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[#FF6B00]/30"
             >
-              确认关闭
+              继续监控
             </button>
           </motion.div>
         )}
@@ -158,18 +178,21 @@ export default function StatsDashboard({
           {onBack && (
             <button 
               onClick={onBack}
-              className="p-3 hover:bg-white/5 rounded-xl border border-white/10 transition-all active:scale-95 group"
+              className={cn("p-3 rounded-xl border transition-all active:scale-95 group", themeClasses.glass)}
             >
               <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
             </button>
           )}
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-4xl font-black tracking-tighter text-white uppercase italic flex items-center gap-3">
-                淘味 <span className="text-brand-primary">极速监控</span> 终端
-                <span className="bg-accent-green/10 border border-accent-green/20 px-2 py-0.5 rounded text-[10px] font-mono non-italic tracking-normal text-accent-green animate-pulse">● SIGNAL ACTIVE</span>
-              </h1>
-              <p className="text-xs uppercase tracking-[0.4em] font-mono text-brand-primary/60 mt-1 flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <Logo size="lg" />
+                <h1 className={cn("text-4xl font-black tracking-tighter uppercase italic", themeClasses.textMain)}>
+                  <span className="text-[#FF6B00]">极速监控</span> 终端
+                  <span className="bg-accent-green/10 border border-accent-green/20 px-2 py-0.5 rounded text-[10px] font-mono non-italic tracking-normal text-accent-green animate-pulse ml-2">● SIGNAL ACTIVE</span>
+                </h1>
+              </div>
+              <p className="text-xs uppercase tracking-[0.4em] font-mono text-[#FF6B00]/60 mt-1 flex items-center gap-2">
                 <ShieldCheck className="w-3 h-3" />
                 Ultra-Fast Real-time Analytics Engine
               </p>
@@ -178,20 +201,20 @@ export default function StatsDashboard({
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="glass px-6 py-3 rounded-xl border border-white/10 flex items-center gap-4 bg-white/[0.02]">
+          <div className={cn("px-6 py-3 rounded-xl border flex items-center gap-4", themeClasses.glass)}>
             <div className="flex flex-col items-end">
                <p className="text-[10px] font-mono opacity-50 uppercase mb-0.5 flex items-center gap-1">
                  <Zap className="w-3 h-3 text-accent-amber" />
                  全局同步时钟
                </p>
-               <p className="text-sm font-bold text-white font-mono tracking-widest italic uppercase">{new Date().toLocaleTimeString()}</p>
+               <p className={cn("text-sm font-bold font-mono tracking-widest italic uppercase", themeClasses.textMain)}>{new Date().toLocaleTimeString()}</p>
             </div>
-            <div className="w-px h-8 bg-white/10" />
+            <div className={cn("w-px h-8", themeClasses.border)} />
             <button 
               onClick={() => setIsEditMode(!isEditMode)}
               className={cn(
                  "flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all border",
-                 isEditMode ? "bg-brand-primary border-brand-primary text-white shadow-[0_0_20px_#e95a32]" : "bg-white/5 border-white/10 text-white/40 hover:border-white/20 hover:text-white"
+                 isEditMode ? "bg-[#FF6B00] border-[#FF6B00] text-white shadow-[0_0_20px_#e95a32]" : "bg-[#FF6B00] border-[#FF6B00] text-white hover:opacity-90 shadow-[0_0_10px_rgba(255,107,0,0.3)]"
               )}
             >
               <Settings className="w-4 h-4" />
@@ -221,7 +244,9 @@ export default function StatsDashboard({
                     onClick={() => setIsDriftActive(!isDriftActive)}
                     className={cn(
                       "flex items-center gap-3 px-6 py-3 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all border shadow-2xl",
-                      isDriftActive ? "bg-accent-green border-accent-green text-black" : "bg-zinc-900 border-zinc-700 text-white/20"
+                      isDriftActive 
+                        ? "bg-accent-green border-accent-green text-black" 
+                        : (isDarkMode ? "bg-zinc-900 border-zinc-700 text-white/20" : "bg-white/30 border-orange-200/20 text-orange-950/20")
                     )}
                   >
                     {isDriftActive ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
@@ -240,7 +265,10 @@ export default function StatsDashboard({
                     type="text" 
                     value={orderPrefix} 
                     onChange={(e) => onPrefixChange(e.target.value)}
-                    className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-black text-xs w-24 outline-none focus:border-brand-primary transition-all text-center"
+                    className={cn(
+                      "rounded-xl px-4 py-3 font-black text-xs w-24 outline-none focus:border-brand-primary transition-all text-center border",
+                      isDarkMode ? "bg-black/40 border-white/10 text-white" : "bg-white border-orange-200/50 text-zinc-900"
+                    )}
                   />
                </div>
 
@@ -294,11 +322,12 @@ export default function StatsDashboard({
           highlight
         />
         <BigStatCard 
-          icon={<Users className="w-8 h-8 text-brand-primary" />} 
+          icon={<Users className="w-8 h-8 text-[#FF6B00]" />} 
           label="在线骑手" 
           value={stats.onlineRiders} 
           sub="REAL-TIME LOGISTICS FLEET"
           isEdit={isEditMode}
+          isDarkMode={isDarkMode}
           driftDelta={driftSettings.onlineRiders}
           onValueChange={(val: string) => handleManualInput('onlineRiders', val)}
           onDirectionToggle={() => toggleDriftDirection('onlineRiders')}
@@ -485,22 +514,23 @@ function DetailStat({ label, value, status }: any) {
   );
 }
 
-function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, onValueChange, onDirectionToggle, onStepAdjust }: any) {
+function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, onValueChange, onDirectionToggle, onStepAdjust, isDarkMode }: any) {
   return (
     <div className={cn(
-      "glass rounded-2xl border transition-all relative overflow-hidden group/card",
-      highlight ? "p-10 border-brand-primary/20 bg-brand-primary/5" : "p-6 border-white/5",
+      "rounded-2xl border transition-all relative overflow-hidden group/card backdrop-blur-3xl",
+      highlight ? "p-10 border-[#FF6B00]/20 bg-[#FF6B00]/5" : "p-6 border-white/5",
+      isDarkMode ? "bg-white/[0.03]" : "bg-white/90 border-brand-primary/10 shadow-sm",
       highlight && "shadow-[0_0_60px_rgba(233,90,50,0.08)]",
-      isEdit && "border-brand-primary/50 ring-2 ring-brand-primary/10"
+      isEdit && "border-[#FF6B00]/50 ring-2 ring-[#FF6B00]/10"
     )}>
       {highlight && (
-        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF6B00]/10 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
       )}
       
       <div className="flex items-center justify-between mb-8">
         <div className={cn(
           "p-4 bg-white/5 rounded-2xl transition-all group-hover/card:scale-110 duration-700", 
-          highlight && "bg-brand-primary/15 shadow-[0_0_30px_rgba(233,90,50,0.2)]"
+          highlight && "bg-[#FF6B00]/15 shadow-[0_0_30px_rgba(233,90,50,0.2)]"
         )}>
           {icon}
         </div>
@@ -524,9 +554,10 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
       <div>
         <p className={cn(
           "uppercase font-bold tracking-widest opacity-50 mb-3 flex items-center gap-2",
-          highlight ? "text-[13px]" : "text-[10px]"
+          highlight ? "text-[13px]" : "text-[10px]",
+          isDarkMode ? "text-zinc-400" : "text-orange-950/40"
         )}>
-           <span className="w-2 h-2 rounded-sm bg-brand-primary rotate-45" />
+           <span className="w-2 h-2 rounded-sm bg-[#FF6B00] rotate-45" />
            {label}
         </p>
         
@@ -535,7 +566,8 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
             <input 
               type="text"
               className={cn(
-                 "bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-black w-full outline-none focus:border-brand-primary focus:bg-white/10 transition-all text-center",
+                 "border rounded-xl px-4 py-3 font-black w-full outline-none focus:border-[#FF6B00] transition-all text-center",
+                 isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-white border-brand-primary/20 text-zinc-900",
                  highlight ? "text-5xl" : "text-3xl"
               )}
               placeholder="0"
@@ -548,18 +580,19 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
               }}
             />
             
-            <div className="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-white/5 backdrop-blur-md">
-                <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary/60">跳动强度: {Math.abs(driftDelta)}</span>
+            <div className={cn("flex items-center justify-between p-3 rounded-xl border backdrop-blur-md", isDarkMode ? "bg-black/40 border-white/5" : "bg-white/50 border-brand-primary/10")}>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B00]/60">跳动强度: {Math.abs(driftDelta)}</span>
                 <div className="flex gap-2">
-                   <button onClick={() => onStepAdjust(-1)} className="p-2 hover:bg-white/10 rounded-lg transition-colors border border-white/10"><Minus className="w-4 h-4 text-white" /></button>
-                   <button onClick={() => onStepAdjust(1)} className="p-2 hover:bg-white/10 rounded-lg transition-colors border border-white/10"><Plus className="w-4 h-4 text-white" /></button>
+                   <button onClick={() => onStepAdjust(-1)} className={cn("p-2 rounded-lg transition-colors border", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Minus className={cn("w-4 h-4", isDarkMode ? "text-white" : "text-zinc-900")} /></button>
+                   <button onClick={() => onStepAdjust(1)} className={cn("p-2 rounded-lg transition-colors border", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Plus className={cn("w-4 h-4", isDarkMode ? "text-white" : "text-zinc-900")} /></button>
                 </div>
             </div>
           </div>
         ) : (
           <div className="relative">
             <h3 className={cn(
-              "font-black text-white tracking-tighter italic flex items-baseline gap-3",
+              "font-black tracking-tighter italic flex items-baseline gap-3",
+              isDarkMode ? "text-white" : "text-zinc-900",
               highlight ? "text-7xl" : "text-5xl"
             )}>
               {typeof value === 'number' ? value.toLocaleString() : value}
@@ -576,7 +609,8 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
         
         <p className={cn(
           "opacity-30 uppercase tracking-[0.3em] mt-6 font-mono flex items-center gap-2",
-          highlight ? "text-[11px]" : "text-[9px]"
+          highlight ? "text-[11px]" : "text-[9px]",
+          isDarkMode ? "text-zinc-400" : "text-orange-950/30"
         )}>
           <TrendingUp className="w-4 h-4" />
           {sub}

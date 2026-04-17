@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import CustomerApp from './components/CustomerApp';
 import BackendDashboard from './components/BackendDashboard';
 import StatsDashboard from './components/StatsDashboard';
+import Logo from './components/Logo';
 import { LayoutDashboard, Smartphone, Activity, Sparkles, BarChart3 } from 'lucide-react';
 import { SystemStats, Order } from './types';
 
@@ -14,6 +15,7 @@ type View = 'customer' | 'backend' | 'analytics';
 
 export default function App() {
   const [view, setView] = useState<View>('customer');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpening, setIsOpening] = useState(true);
   const [stats, setStats] = useState<SystemStats>({
     activeOrders: 0,
@@ -97,14 +99,12 @@ export default function App() {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 1, ease: 'easeOut' }}
-              className="relative"
+              className="flex flex-col items-center"
             >
-              <div className="absolute inset-0 bg-brand-primary blur-[100px] opacity-20" />
-              <h1 className="text-8xl font-black italic tracking-tighter logo-text uppercase mb-2 relative">
-                淘味
-              </h1>
+              <div className="absolute inset-0 bg-[#FF6B00] blur-[100px] opacity-20" />
+              <Logo size="xl" className="mb-4" />
               <div className="flex items-center justify-center gap-2 text-brand-cream/60 tracking-[0.4em] text-[10px] font-bold uppercase transition-all">
-                <Sparkles className="w-3 h-3 text-brand-primary" />
+                <Sparkles className="w-3 h-3 text-[#FF6B00]" />
                 极速送达 淘出品味
               </div>
             </motion.div>
@@ -158,7 +158,11 @@ export default function App() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               >
-                <CustomerApp onNavigate={(v) => setView(v)} />
+                <CustomerApp 
+                  isDarkMode={isDarkMode}
+                  setIsDarkMode={setIsDarkMode}
+                  onNavigate={(v) => setView(v)} 
+                />
               </motion.div>
             ) : view === 'backend' ? (
               <motion.div
@@ -169,6 +173,8 @@ export default function App() {
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               >
                 <BackendDashboard 
+                  isDarkMode={isDarkMode}
+                  setIsDarkMode={setIsDarkMode}
                   propsStats={stats} 
                   propsUpdateStat={updateStat} 
                   orderPrefix={orderPrefix} 
@@ -185,6 +191,8 @@ export default function App() {
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               >
                 <StatsDashboard 
+                  isDarkMode={isDarkMode}
+                  setIsDarkMode={setIsDarkMode}
                   stats={stats} 
                   updateStat={updateStat} 
                   onBack={() => setView('backend')} 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard } from 'lucide-react';
+import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard, Sun, Moon } from 'lucide-react';
+import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Point, Rider, Order, SystemStats } from '../types';
 
@@ -9,6 +10,8 @@ const WIDTH = 1200;
 const HEIGHT = 800;
 
 interface BackendDashboardProps {
+  isDarkMode: boolean;
+  setIsDarkMode: (val: boolean) => void;
   propsStats: SystemStats;
   propsUpdateStat: (key: keyof SystemStats, delta: number) => void;
   orderPrefix: string;
@@ -17,6 +20,8 @@ interface BackendDashboardProps {
 }
 
 export default function BackendDashboard({ 
+  isDarkMode,
+  setIsDarkMode,
   propsStats, 
   propsUpdateStat, 
   orderPrefix, 
@@ -38,6 +43,16 @@ export default function BackendDashboard({
   const [isManagementUnlocked, setIsManagementUnlocked] = useState(false); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
 
+  const themeClasses = {
+    bg: isDarkMode ? 'bg-zinc-950 text-zinc-400' : 'bg-[#fdf4e3] text-zinc-700',
+    glass: isDarkMode ? 'bg-zinc-900/60 border-white/10' : 'bg-white/70 border-brand-primary/10 shadow-xl',
+    card: isDarkMode ? 'bg-white/[0.03] border-white/5' : 'bg-white/80 border-brand-primary/5 shadow-sm',
+    input: isDarkMode ? 'bg-black/40 border-white/10' : 'bg-white border-brand-primary/20 text-zinc-900',
+    textMain: isDarkMode ? 'text-white' : 'text-zinc-900',
+    textMuted: isDarkMode ? 'text-zinc-500' : 'text-orange-900/40',
+    logo: 'text-[#FF6B00]',
+    border: isDarkMode ? 'border-white/10' : 'border-orange-200/30',
+  };
   // Sync Riders with Stats
   useEffect(() => {
     setRiders(prev => {
@@ -123,7 +138,7 @@ export default function BackendDashboard({
   );
 
   return (
-    <div className="flex h-screen bg-bg-dark overflow-hidden font-sans text-zinc-400">
+    <div className={cn("flex h-screen overflow-hidden font-sans transition-colors duration-500", themeClasses.bg)}>
       {/* Sidebar Stats */}
       <motion.div 
         initial={false}
@@ -134,15 +149,16 @@ export default function BackendDashboard({
           marginRight: isSidebarOpen ? 0 : 0
         }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="flex flex-col glass z-20 my-6 rounded-lg overflow-hidden relative"
+        className={cn("flex flex-col backdrop-blur-xl z-20 my-6 rounded-lg overflow-hidden relative border", themeClasses.glass)}
       >
-        <div className="p-6 border-b border-white/10 shrink-0">
+        <div className={cn("p-6 border-b shrink-0", themeClasses.border)}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
               <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse shadow-[0_0_8px_#39ff14] shrink-0" />
-              <h1 className="text-xl font-black tracking-tighter logo-text uppercase">淘味 调度中心</h1>
+              <Logo size="md" />
+              <span className={cn("text-sm font-black tracking-tighter uppercase", themeClasses.textMain)}>调度中心</span>
             </div>
-            <button onClick={() => setShowSettings(!showSettings)} className="text-brand-primary p-1 hover:bg-white/5 rounded transition-colors shrink-0">
+            <button onClick={() => setShowSettings(!showSettings)} className="text-[#FF6B00] p-1 hover:bg-white/5 rounded transition-colors shrink-0">
               <Settings className="w-4 h-4" />
             </button>
           </div>
@@ -154,19 +170,19 @@ export default function BackendDashboard({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="p-3 bg-white/5 rounded border border-white/10 mb-4 space-y-3">
+                <div className={cn("p-3 rounded border mb-4 space-y-3", isDarkMode ? "bg-white/5 border-white/10" : "bg-white/50 border-brand-primary/10")}>
                   <div className="space-y-1">
-                    <label className="text-[9px] uppercase tracking-widest text-brand-primary opacity-60">订单单号前缀</label>
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60">订单单号前缀</label>
                     <input 
                       type="text" 
                       value={orderPrefix} 
                       onChange={(e) => onPrefixChange(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white focus:border-brand-primary outline-none"
+                      className={cn("w-full border rounded px-2 py-1 text-xs focus:border-[#FF6B00] outline-none transition-colors", themeClasses.input)}
                     />
                   </div>
                   
-                  <div className="pt-2 border-t border-white/5">
-                    <label className="text-[9px] uppercase tracking-widest text-brand-primary opacity-60 block mb-2">地图视角校准 (雪隆区范围)</label>
+                  <div className={cn("pt-2 border-t", themeClasses.border)}>
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">地图视角校准 (雪隆区范围)</label>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <span className="text-[8px] opacity-40">LAT</span>
@@ -175,7 +191,7 @@ export default function BackendDashboard({
                           step="0.0001"
                           value={mapConfig.lat} 
                           onChange={(e) => setMapConfig({ ...mapConfig, lat: parseFloat(e.target.value) })}
-                          className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] text-white"
+                          className={cn("w-full border rounded px-2 py-1 text-[10px] transition-colors", themeClasses.input)}
                         />
                       </div>
                       <div className="space-y-1">
@@ -185,7 +201,7 @@ export default function BackendDashboard({
                           step="0.0001"
                           value={mapConfig.lng} 
                           onChange={(e) => setMapConfig({ ...mapConfig, lng: parseFloat(e.target.value) })}
-                          className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] text-white"
+                          className={cn("w-full border rounded px-2 py-1 text-[10px] transition-colors", themeClasses.input)}
                         />
                       </div>
                     </div>
@@ -196,7 +212,7 @@ export default function BackendDashboard({
                            <button 
                              key={z} 
                              onClick={() => setMapConfig({ ...mapConfig, zoom: z })}
-                             className={cn("px-2 py-0.5 rounded text-[8px] border", mapConfig.zoom === z ? "bg-brand-primary text-black border-brand-primary" : "border-white/10")}
+                             className={cn("px-2 py-0.5 rounded text-[8px] border transition-all", mapConfig.zoom === z ? "bg-[#FF6B00] text-white border-[#FF6B00]" : themeClasses.border)}
                            >
                              {z}
                            </button>
@@ -208,12 +224,13 @@ export default function BackendDashboard({
               </motion.div>
             )}
           </AnimatePresence>
-          <p className="text-[9px] uppercase tracking-[0.3em] font-mono text-brand-primary/60">系统状态：雪隆区实时在线</p>
+          <p className="text-[9px] uppercase tracking-[0.3em] font-mono text-[#FF6B00]/60">系统状态：雪隆区实时在线</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <StatCard 
+              isDarkMode={isDarkMode}
               icon={<Zap className="w-4 h-4 text-accent-amber" />} 
               label="进行中订单" 
               value={propsStats.activeOrders} 
@@ -222,7 +239,8 @@ export default function BackendDashboard({
               onDecrement={() => propsUpdateStat('activeOrders', -1)}
             />
             <StatCard 
-              icon={<Users className="w-4 h-4 text-brand-primary" />} 
+              isDarkMode={isDarkMode}
+              icon={<Users className="w-4 h-4 text-[#FF6B00]" />} 
               label="在线骑手" 
               value={propsStats.onlineRiders} 
               isEdit={isManagementUnlocked}
@@ -231,6 +249,7 @@ export default function BackendDashboard({
             />
           </div>
           <StatCard 
+              isDarkMode={isDarkMode}
               icon={<TrendingUp className="w-4 h-4 text-accent-green" />} 
               label="今日配送量" 
               value={propsStats.deliveredToday} 
@@ -239,6 +258,7 @@ export default function BackendDashboard({
               onDecrement={() => propsUpdateStat('deliveredToday', -100)}
             />
           <StatCard 
+              isDarkMode={isDarkMode}
               icon={<ShieldCheck className="w-4 h-4 text-accent-amber" />} 
               label="已完成订单" 
               value={propsStats.completedTotal} 
@@ -249,17 +269,17 @@ export default function BackendDashboard({
 
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[10px] uppercase font-bold text-brand-primary border-l-2 border-brand-primary pl-3 py-0.5 tracking-widest">实时订单流</h2>
+              <h2 className="text-[10px] uppercase font-bold text-[#FF6B00] border-l-2 border-[#FF6B00] pl-3 py-0.5 tracking-widest">实时订单流</h2>
               <div className="flex gap-2 text-[9px]">
                 <button 
                   onClick={() => setIsManagementUnlocked(!isManagementUnlocked)}
-                  className={cn("px-2 py-1 rounded border border-white/10 transition-colors uppercase font-bold", isManagementUnlocked ? "bg-brand-primary/20 text-brand-primary border-brand-primary/30" : "bg-white/5 text-zinc-500")}
+                  className={cn("px-2 py-1 rounded border transition-all uppercase font-bold", isManagementUnlocked ? "bg-[#FF6B00]/20 text-[#FF6B00] border-[#FF6B00]/30" : isDarkMode ? "bg-white/5 text-zinc-500 border-white/10" : "bg-white/50 text-orange-950/40 border-brand-primary/10")}
                 >
                   {isManagementUnlocked ? "功能已解锁" : "隐藏功能"}
                 </button>
                 <button 
                   onClick={() => setIsAutoSpawning(!isAutoSpawning)}
-                  className={cn("px-2 py-1 rounded border border-white/10 transition-colors uppercase font-bold", isAutoSpawning ? "bg-accent-green/20 text-accent-green border-accent-green/30" : "bg-white/5 text-zinc-500")}
+                  className={cn("px-2 py-1 rounded border transition-all uppercase font-bold", isAutoSpawning ? "bg-accent-green/20 text-accent-green border-accent-green/30" : isDarkMode ? "bg-white/5 text-zinc-500 border-white/10" : "bg-white/50 text-orange-950/40 border-brand-primary/10")}
                 >
                   {isAutoSpawning ? "自动派单中" : "暂停派单"}
                 </button>
@@ -274,16 +294,17 @@ export default function BackendDashboard({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     className={cn(
-                      "p-3 rounded border border-white/10 bg-white/[0.02] transition-colors",
-                      activeOrderId === order.id ? "border-accent-amber/50 bg-accent-amber/5" : "hover:bg-white/[0.05]",
+                      "p-3 rounded border transition-colors",
+                      isDarkMode ? "bg-white/[0.02] border-white/10" : "bg-white/60 border-brand-primary/5 shadow-sm",
+                      activeOrderId === order.id ? (isDarkMode ? "border-accent-amber/50 bg-accent-amber/5" : "border-accent-amber bg-accent-amber/10 shadow-[0_0_15px_rgba(255,170,0,0.1)]") : "hover:bg-brand-primary/5",
                       order.status === 'completed' && "opacity-40 grayscale"
                     )}
                   >
                     <div className="flex justify-between mb-1">
                       <span className="text-accent-amber font-mono text-[11px] font-bold">#{orderPrefix}-{order.id}</span>
-                      <span className="text-white font-bold text-[10px]">RM {order.price.toFixed(2)}</span>
+                      <span className={cn("font-bold text-[10px]", themeClasses.textMain)}>RM {order.price.toFixed(2)}</span>
                     </div>
-                    <div className="opacity-60 text-[10px] truncate mb-2">{order.items.join(', ')}</div>
+                    <div className={cn("text-[10px] truncate mb-2", themeClasses.textMuted)}>{order.items.join(', ')}</div>
                     <div className="flex items-center justify-between font-mono text-[9px] opacity-40">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
@@ -312,15 +333,15 @@ export default function BackendDashboard({
       </motion.div>
 
       {/* Main Map Area */}
-      <div className="flex-1 relative bg-bg-dark overflow-hidden m-4 ml-0 my-6 mr-6 rounded-lg border border-white/5">
+      <div className={cn("flex-1 relative overflow-hidden m-4 ml-0 my-6 mr-6 rounded-lg border shadow-inner transition-colors duration-500", isDarkMode ? "bg-zinc-950 border-white/5" : "bg-white border-brand-primary/10")}>
         {/* Toggle Sidebar Button */}
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
             "absolute top-6 left-6 z-30 p-2 rounded-full border transition-all pointer-events-auto",
             isSidebarOpen 
-              ? "bg-transparent border-white/10 opacity-0 md:opacity-100 -translate-x-full hover:bg-white/5" 
-              : "bg-brand-primary text-black border-brand-primary shadow-2xl scale-110"
+              ? (isDarkMode ? "bg-transparent border-white/10 opacity-0 md:opacity-100 -translate-x-full hover:bg-white/5" : "bg-transparent border-brand-primary/10 opacity-0 md:opacity-100 -translate-x-full hover:bg-brand-primary/5")
+              : "bg-[#FF6B00] text-white border-[#FF6B00] shadow-2xl scale-110"
           )}
         >
           {isSidebarOpen ? <Minus className="w-4 h-4" /> : <LayoutDashboard className="w-4 h-4" />}
@@ -329,12 +350,12 @@ export default function BackendDashboard({
         {/* Map Background Image */}
         <div className="absolute inset-0 z-0 scale-[1.02]">
           <img 
-            src={`https://maps.googleapis.com/maps/api/staticmap?center=${mapConfig.lat},${mapConfig.lng}&zoom=${mapConfig.zoom}&size=1280x800&scale=2&maptype=roadmap&key=${(import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY}`} 
+            src={`https://maps.googleapis.com/maps/api/staticmap?center=${mapConfig.lat},${mapConfig.lng}&zoom=${mapConfig.zoom}&size=1280x800&scale=2&maptype=roadmap&key=${(import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY}&style=feature:all|element:all|saturation:-100|lightness:${isDarkMode ? -80 : 20}`} 
             alt="Klang Valley Live Map"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-white/5 pointer-events-none" />
+          <div className={cn("absolute inset-0 pointer-events-none", isDarkMode ? "bg-black/20" : "bg-white/10")} />
         </div>
 
         <svg 
@@ -362,8 +383,8 @@ export default function BackendDashboard({
           </defs>
           
           {/* Historical/Static Markers */}
-          <rect x="550" y="405" width="120" height="20" fill="rgba(0,0,0,0.8)" rx="4" />
-          <text x="560" y="420" fill="white" fontSize="10" className="opacity-80 tracking-[0.2em] font-bold">吉隆坡中心区</text>
+          <rect x="550" y="405" width="120" height="20" fill={isDarkMode ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.7)"} rx="4" />
+          <text x="560" y="420" fill={isDarkMode ? "white" : "maroon"} fontSize="10" className="opacity-80 tracking-[0.2em] font-bold">吉隆坡中心区</text>
 
           {/* Active Pulse Lines for ALL non-completed orders */}
           {orders.filter(o => o.status !== 'completed').map(order => {
@@ -378,7 +399,7 @@ export default function BackendDashboard({
                 {assignedRider && (
                   <motion.path
                     d={`M ${assignedRider.pos.x} ${assignedRider.pos.y} L ${order.pickupPos.x} ${order.pickupPos.y}`}
-                    stroke="rgba(255,255,255,0.15)"
+                    stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.2)"}
                     strokeWidth="1"
                     strokeDasharray="4 2"
                     fill="none"
@@ -448,7 +469,7 @@ export default function BackendDashboard({
                 cx={rider.pos.x}
                 cy={rider.pos.y}
                 r={isAssigned ? 5 : 2}
-                fill={isAssigned ? "var(--color-accent-green)" : "rgba(255,255,255,0.8)"}
+                fill={isAssigned ? "var(--color-accent-green)" : isDarkMode ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.6)"}
                 className={cn(
                   "transition-all duration-300",
                   isAssigned ? "opacity-100" : "opacity-60"
@@ -459,18 +480,18 @@ export default function BackendDashboard({
           })}
         </svg>
 
-        <div className="absolute bottom-6 left-8 font-mono text-[10px] text-brand-primary opacity-50 tracking-widest z-20">
+        <div className={cn("absolute bottom-6 left-8 font-mono text-[10px] opacity-50 tracking-widest z-20", isDarkMode ? "text-[#FF6B00]" : "text-zinc-600")}>
            坐标: 3.1390° N | 101.6869° E | 核心节点 [在线]
         </div>
 
         <div className="absolute top-6 right-6 flex flex-col items-end gap-3 pointer-events-none z-20">
-          <div className="glass p-3 rounded border border-white/10 flex items-center gap-6">
+          <div className={cn("p-3 rounded border flex items-center gap-6 backdrop-blur-md", themeClasses.glass)}>
              <div className="text-right">
                 <p className="text-[9px] uppercase tracking-widest opacity-50">本地系统时间</p>
-                <p className="text-sm font-bold text-white uppercase font-mono">{new Date().toLocaleTimeString()}</p>
+                <p className={cn("text-sm font-bold uppercase font-mono transition-colors", themeClasses.textMain)}>{new Date().toLocaleTimeString()}</p>
              </div>
              {activeOrder && activeOrder.status !== 'completed' && (
-                <div className="text-right border-l border-white/10 pl-6">
+                <div className={cn("text-right border-l pl-6", isDarkMode ? "border-white/10" : "border-zinc-200")}>
                   <p className="text-[9px] uppercase tracking-widest text-accent-amber">当前派送耗时</p>
                   <p className="text-sm font-bold text-accent-amber uppercase font-mono">
                     <LiveTimer startTime={activeOrder.timestamp} pulse />
@@ -478,6 +499,17 @@ export default function BackendDashboard({
                 </div>
              )}
           </div>
+          
+          {/* Global Theme Toggle for Backend */}
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className={cn(
+              "p-3 rounded-full border transition-all pointer-events-auto hover:scale-110 active:scale-95 shadow-lg",
+              isDarkMode ? "bg-zinc-800 border-white/10 text-[#FF6B00]" : "bg-white border-zinc-200 text-[#FF6B00]"
+            )}
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
         </div>
 
         <AnimatePresence>
@@ -507,12 +539,15 @@ export default function BackendDashboard({
               initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
               animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
               exit={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
-              className="absolute top-1/2 left-1/2 p-6 glass rounded-sm border border-accent-amber/40 min-w-[240px] text-center shadow-[0_0_50px_rgba(255,170,0,0.1)] z-30"
+              className={cn(
+                "absolute top-1/2 left-1/2 p-6 rounded-sm border min-w-[240px] text-center shadow-[0_0_50px_rgba(255,170,0,0.1)] z-30 backdrop-blur-xl",
+                isDarkMode ? "bg-zinc-900/60 border-accent-amber/40" : "bg-white/80 border-accent-amber shadow-2xl"
+              )}
             >
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140px] h-[140px] border border-accent-amber/20 rounded-full animate-ping opacity-20 pointer-events-none" />
               
               <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-accent-amber mb-2">检测到新配送序列</h3>
-              <p className="font-mono text-lg font-bold text-white tracking-widest mb-1">ID: {orderPrefix}-{activeOrder.id}</p>
+              <p className={cn("font-mono text-lg font-bold tracking-widest mb-1", themeClasses.textMain)}>ID: {orderPrefix}-{activeOrder.id}</p>
               <div className="flex flex-col my-3">
                 <p className="font-mono text-xs text-zinc-500 uppercase tracking-widest mb-1">实时配送计时</p>
                 <div className="text-4xl font-black text-accent-amber font-mono">
@@ -561,6 +596,7 @@ function StatCard({
   label, 
   value, 
   isEdit,
+  isDarkMode,
   onIncrement, 
   onDecrement 
 }: { 
@@ -568,17 +604,18 @@ function StatCard({
   label: string, 
   value: string | number,
   isEdit?: boolean,
+  isDarkMode?: boolean,
   onIncrement?: () => void,
   onDecrement?: () => void
 }) {
   return (
-    <div className="p-4 rounded border border-white/5 bg-white/[0.03] space-y-1 group relative">
-      <div className="flex items-center gap-2 text-[10px] font-bold text-brand-primary opacity-70 uppercase tracking-widest">
+    <div className={cn("p-4 rounded border space-y-1 group relative transition-all", isDarkMode ? "border-white/5 bg-white/[0.03]" : "bg-white/90 border-brand-primary/10 shadow-sm")}>
+      <div className="flex items-center gap-2 text-[10px] font-bold text-[#FF6B00] opacity-70 uppercase tracking-widest">
         {icon}
         {label}
       </div>
       <div className="flex items-end justify-between">
-        <div className="text-2xl font-black tracking-tight text-white font-sans uppercase">
+        <div className={cn("text-2xl font-black tracking-tight font-sans uppercase transition-colors", isDarkMode ? "text-white" : "text-zinc-900")}>
           {value}
         </div>
         <AnimatePresence>
@@ -589,8 +626,8 @@ function StatCard({
               exit={{ opacity: 0, x: 10 }}
               className="flex gap-1"
             >
-              <button onClick={onDecrement} className="p-1 hover:bg-white/10 border border-white/10 rounded transition-colors active:scale-90"><Minus className="w-3 h-3" /></button>
-              <button onClick={onIncrement} className="p-1 hover:bg-white/10 border border-white/10 rounded transition-colors active:scale-90"><Plus className="w-3 h-3" /></button>
+              <button onClick={onDecrement} className={cn("p-1 rounded border transition-colors active:scale-90", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Minus className="w-3 h-3" /></button>
+              <button onClick={onIncrement} className={cn("p-1 rounded border transition-colors active:scale-90", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Plus className="w-3 h-3" /></button>
             </motion.div>
           )}
         </AnimatePresence>
