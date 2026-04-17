@@ -26,10 +26,7 @@ import {
 import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Category, Product } from '../types';
-
-// Asset Imports
-import pencaiImg from '../pencai.png';
-import heroImg from '../hero-pic.jpeg';
+import { ASSETS } from '../constants';
 
 const CATEGORIES: { label: string; icon: any; color: string }[] = [
   { label: '美食外卖', icon: Utensils, color: 'bg-orange-500' },
@@ -40,7 +37,7 @@ const CATEGORIES: { label: string; icon: any; color: string }[] = [
 ];
 
 const INITIAL_PRODUCTS: Product[] = [
-  { id: '9', name: '金林盆菜', price: 399.00, category: '美食外卖', image: pencaiImg, rating: 5.0 },
+  { id: '9', name: '金林盆菜', price: 399.00, category: '美食外卖', image: ASSETS.PENCAI, rating: 5.0 },
   { id: '1', name: '极品和牛堡', price: 32.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1000&auto=format&fit=crop', rating: 4.8 },
   { id: '2', name: '新鲜有机菠菜', price: 5.50, category: '生鲜买菜', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?q=80&w=1000&auto=format&fit=crop', rating: 4.5 },
   { id: '3', name: '强力止痛片', price: 12.00, category: '送药上门', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=1000&auto=format&fit=crop', rating: 4.9 },
@@ -68,13 +65,13 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('taowei_hero_image');
         // If it's a relative path or the old dev path, use the imported one
-        if (!saved || saved.includes('/src/hero-pic.jpeg')) return heroImg;
+        if (!saved || saved.includes('/src/hero-pic.jpeg')) return ASSETS.HERO;
         return saved;
       }
     } catch (e) {
       console.error('Failed to load hero image from localStorage', e);
     }
-    return heroImg;
+    return ASSETS.HERO;
   });
 
   const [isEditingHero, setIsEditingHero] = useState(false);
@@ -98,10 +95,8 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
         // Data Migration: Ensure product '9' (Pencai) uses the imported asset and correctly named
         parsed = parsed.map(p => {
           if (p.id === '9') {
-            const needsUpdate = p.image.includes('src/pencai.png') || !p.image || p.name === '团圆大盆菜';
-            if (needsUpdate) {
-              return { ...p, image: pencaiImg, name: '金林盆菜' };
-            }
+             // Always update to the latest ASSETS.PENCAI to reflect user's manual link changes
+             return { ...p, image: ASSETS.PENCAI, name: '金林盆菜' };
           }
           return p;
         });
@@ -310,7 +305,11 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
                   exit={{ opacity: 0 }}
                   className="group"
                 >
-                  <div className={cn("relative aspect-square rounded-2xl overflow-hidden mb-3 border transition-all duration-300", themeClasses.card)}>
+                  <div className={cn(
+                    "relative aspect-square rounded-2xl overflow-hidden mb-3 border transition-all duration-300", 
+                    themeClasses.card,
+                    product.id === '9' && "border-brand-primary/40 ring-1 ring-brand-primary/20 shadow-[0_0_15px_rgba(233,90,50,0.1)]"
+                  )}>
                     <img 
                       src={product.image} 
                       alt={product.name}
@@ -380,8 +379,13 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-primary via-orange-400 to-amber-400" />
                 
                 <div className="flex flex-col items-center text-center gap-6">
-                  <div className="w-20 h-20 rounded-3xl bg-brand-primary/10 flex items-center justify-center">
-                    <Zap className="w-10 h-10 text-brand-primary animate-pulse shadow-[0_0_20px_rgba(233,90,50,0.5)]" />
+                  <div className="w-40 h-40 rounded-3xl bg-brand-primary/10 flex items-center justify-center overflow-hidden border border-brand-primary/20 shadow-2xl">
+                    <img 
+                      src={ASSETS.PENCAI} 
+                      alt="Jinlin Pencai" 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
                   </div>
                   
                   <div className="space-y-4 w-full">
