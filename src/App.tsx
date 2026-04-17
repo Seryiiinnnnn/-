@@ -105,7 +105,7 @@ export default function App() {
               </h1>
               <div className="flex items-center justify-center gap-2 text-brand-cream/60 tracking-[0.4em] text-[10px] font-bold uppercase transition-all">
                 <Sparkles className="w-3 h-3 text-brand-primary" />
-                淘味超级配送协议
+                极速送达 淘出品味
               </div>
             </motion.div>
           </motion.div>
@@ -114,30 +114,39 @@ export default function App() {
 
       {!isOpening && (
         <>
-          {/* View Switcher Overlay */}
-          <div className="fixed top-24 right-6 z-[100] flex flex-col gap-2">
-            <button 
-              onClick={() => setView('customer')}
-              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'customer' ? 'bg-brand-primary border-brand-primary text-brand-cream' : 'bg-black/50 border-white/10 text-brand-primary/60 hover:border-white/20'}`}
-            >
-              <Smartphone className="w-4 h-4" />
-              终端：客户视角
-            </button>
-            <button 
-              onClick={() => setView('backend')}
-              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'backend' ? 'bg-brand-secondary border-brand-secondary text-brand-cream' : 'bg-black/50 border-white/10 text-brand-secondary/60 hover:border-white/20'}`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              终端：调度后台
-            </button>
-            <button 
-              onClick={() => setView('analytics')}
-              className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'analytics' ? 'bg-accent-green border-accent-green text-black' : 'bg-black/50 border-white/10 text-accent-green/60 hover:border-white/20'}`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              核心看板
-            </button>
-          </div>
+          {/* View Switcher Overlay - Hidden when in Customer View as per request */}
+          <AnimatePresence>
+            {view !== 'customer' && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="fixed top-24 right-6 z-[100] flex flex-col gap-2"
+              >
+                <button 
+                  onClick={() => setView('customer')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'customer' ? 'bg-brand-primary border-brand-primary text-brand-cream' : 'bg-black/50 border-white/10 text-brand-primary/60 hover:border-white/20'}`}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  终端：客户视角
+                </button>
+                <button 
+                  onClick={() => setView('backend')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'backend' ? 'bg-brand-secondary border-brand-secondary text-brand-cream' : 'bg-black/50 border-white/10 text-brand-secondary/60 hover:border-white/20'}`}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  终端：调度后台
+                </button>
+                <button 
+                  onClick={() => setView('analytics')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded text-xs font-black border backdrop-blur-xl transition-all shadow-2xl tracking-widest ${view === 'analytics' ? 'bg-accent-green border-accent-green text-black' : 'bg-black/50 border-white/10 text-accent-green/60 hover:border-white/20'}`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  核心看板
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Main View Container */}
           <AnimatePresence mode="wait">
@@ -149,7 +158,7 @@ export default function App() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               >
-                <CustomerApp />
+                <CustomerApp onNavigate={(v) => setView(v)} />
               </motion.div>
             ) : view === 'backend' ? (
               <motion.div

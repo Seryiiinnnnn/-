@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck } from 'lucide-react';
+import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Point, Rider, Order, SystemStats } from '../types';
 
 // Approximate Klang Valley Bounds
 const WIDTH = 1200;
 const HEIGHT = 800;
-
-// Google Maps Center for Klang Valley (centered more towards the middle of the provided image)
-const MAP_LAT = 3.0738;
-const MAP_LNG = 101.5183;
 
 interface BackendDashboardProps {
   propsStats: SystemStats;
@@ -30,10 +26,17 @@ export default function BackendDashboard({
   const [riders, setRiders] = useState<Rider[]>([]);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   
+  const [mapConfig, setMapConfig] = useState({
+    lat: 2.9531775249216956,
+    lng: 102.09935132155357,
+    zoom: 9
+  });
+
   const [showNotification, setShowNotification] = useState(false);
   const [isAutoSpawning, setIsAutoSpawning] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [isManagementUnlocked, setIsManagementUnlocked] = useState(false); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
 
   // Sync Riders with Stats
   useEffect(() => {
@@ -45,7 +48,6 @@ export default function BackendDashboard({
         const diff = targetCount - prev.length;
         const newRiders: Rider[] = Array.from({ length: diff }).map((_, i) => ({
           id: `rider-${prev.length + i}`,
-          // Bias spawn towards center (Kuala Lumpur area)
           pos: { 
             x: WIDTH/2 + (Math.random() - 0.5) * WIDTH * 0.7, 
             y: HEIGHT/2 + (Math.random() - 0.5) * HEIGHT * 0.7 
@@ -123,14 +125,24 @@ export default function BackendDashboard({
   return (
     <div className="flex h-screen bg-bg-dark overflow-hidden font-sans text-zinc-400">
       {/* Sidebar Stats */}
-      <div className="w-80 flex flex-col glass z-20 m-4 rounded-lg my-6 ml-6">
-        <div className="p-6 border-b border-white/10">
+      <motion.div 
+        initial={false}
+        animate={{ 
+          width: isSidebarOpen ? 320 : 0,
+          opacity: isSidebarOpen ? 1 : 0,
+          marginLeft: isSidebarOpen ? 24 : 0,
+          marginRight: isSidebarOpen ? 0 : 0
+        }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="flex flex-col glass z-20 my-6 rounded-lg overflow-hidden relative"
+      >
+        <div className="p-6 border-b border-white/10 shrink-0">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse shadow-[0_0_8px_#39ff14]" />
+            <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+              <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse shadow-[0_0_8px_#39ff14] shrink-0" />
               <h1 className="text-xl font-black tracking-tighter logo-text uppercase">淘味 调度中心</h1>
             </div>
-            <button onClick={() => setShowSettings(!showSettings)} className="text-brand-primary p-1 hover:bg-white/5 rounded transition-colors">
+            <button onClick={() => setShowSettings(!showSettings)} className="text-brand-primary p-1 hover:bg-white/5 rounded transition-colors shrink-0">
               <Settings className="w-4 h-4" />
             </button>
           </div>
@@ -152,6 +164,46 @@ export default function BackendDashboard({
                       className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white focus:border-brand-primary outline-none"
                     />
                   </div>
+                  
+                  <div className="pt-2 border-t border-white/5">
+                    <label className="text-[9px] uppercase tracking-widest text-brand-primary opacity-60 block mb-2">地图视角校准 (雪隆区范围)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <span className="text-[8px] opacity-40">LAT</span>
+                        <input 
+                          type="number" 
+                          step="0.0001"
+                          value={mapConfig.lat} 
+                          onChange={(e) => setMapConfig({ ...mapConfig, lat: parseFloat(e.target.value) })}
+                          className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[8px] opacity-40">LNG</span>
+                        <input 
+                          type="number" 
+                          step="0.0001"
+                          value={mapConfig.lng} 
+                          onChange={(e) => setMapConfig({ ...mapConfig, lng: parseFloat(e.target.value) })}
+                          className="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] text-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                       <span className="text-[8px] opacity-40 uppercase">缩放比例 (ZOOM)</span>
+                       <div className="flex gap-2">
+                         {[9, 10, 11, 12, 13].map(z => (
+                           <button 
+                             key={z} 
+                             onClick={() => setMapConfig({ ...mapConfig, zoom: z })}
+                             className={cn("px-2 py-0.5 rounded text-[8px] border", mapConfig.zoom === z ? "bg-brand-primary text-black border-brand-primary" : "border-white/10")}
+                           >
+                             {z}
+                           </button>
+                         ))}
+                       </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -159,7 +211,7 @@ export default function BackendDashboard({
           <p className="text-[9px] uppercase tracking-[0.3em] font-mono text-brand-primary/60">系统状态：雪隆区实时在线</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <StatCard 
               icon={<Zap className="w-4 h-4 text-accent-amber" />} 
@@ -250,14 +302,27 @@ export default function BackendDashboard({
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Map Area */}
       <div className="flex-1 relative bg-bg-dark overflow-hidden m-4 ml-0 my-6 mr-6 rounded-lg border border-white/5">
+        {/* Toggle Sidebar Button */}
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={cn(
+            "absolute top-6 left-6 z-30 p-2 rounded-full border transition-all pointer-events-auto",
+            isSidebarOpen 
+              ? "bg-transparent border-white/10 opacity-0 md:opacity-100 -translate-x-full hover:bg-white/5" 
+              : "bg-brand-primary text-black border-brand-primary shadow-2xl scale-110"
+          )}
+        >
+          {isSidebarOpen ? <Minus className="w-4 h-4" /> : <LayoutDashboard className="w-4 h-4" />}
+        </button>
+
         {/* Map Background Image */}
         <div className="absolute inset-0 z-0 scale-[1.02]">
           <img 
-            src={`https://maps.googleapis.com/maps/api/staticmap?center=${MAP_LAT},${MAP_LNG}&zoom=11&size=1280x800&scale=2&maptype=roadmap&key=${(import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY}`} 
+            src={`https://maps.googleapis.com/maps/api/staticmap?center=${mapConfig.lat},${mapConfig.lng}&zoom=${mapConfig.zoom}&size=1280x800&scale=2&maptype=roadmap&key=${(import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY}`} 
             alt="Klang Valley Live Map"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
