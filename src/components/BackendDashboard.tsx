@@ -5,6 +5,8 @@ import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Point, Rider, Order, SystemStats } from '../types';
 
+import mapBg from '../map-bg.png';
+
 // Approximate Klang Valley Bounds
 const WIDTH = 1200;
 const HEIGHT = 800;
@@ -451,7 +453,7 @@ export default function BackendDashboard({
         {/* Map Background Image */}
         <div className="absolute inset-0 z-0 scale-[1.02]">
           <img 
-            src={localStorage.getItem('taowei_custom_map') || '/src/map-bg.png'} 
+            src={localStorage.getItem('taowei_custom_map') || mapBg} 
             alt="Dispatch Map"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
