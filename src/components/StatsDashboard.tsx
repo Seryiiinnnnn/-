@@ -5,7 +5,7 @@ import {
   BarChart3, Activity, Clock, Package,
   Plus, Minus, Settings, ChevronLeft,
   ArrowUp, ArrowDown, Play, Pause,
-  Sun, Moon
+  Sun, Moon, X
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -18,11 +18,22 @@ import { cn } from '../lib/utils';
 interface StatsDashboardProps {
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
+  isNavigationVisible: boolean;
+  onToggleNavigation: () => void;
   stats: SystemStats;
   updateStat: (key: keyof SystemStats, delta: number) => void;
   onBack?: () => void;
   orderPrefix: string;
   onPrefixChange: (prefix: string) => void;
+  isDriftActive: boolean;
+  setIsDriftActive: (val: boolean) => void;
+  driftSettings: Record<string, number>;
+  onToggleDriftDirection: (key: string) => void;
+  onAdjustDriftStep: (key: string, delta: number) => void;
+  driftInterval: number;
+  setDriftInterval: (val: number) => void;
+  showCompletionToast: boolean;
+  setShowCompletionToast: (val: boolean) => void;
   orders: Order[];
 }
 
@@ -39,27 +50,28 @@ const MOCK_HISTORICAL_DATA = [
 export default function StatsDashboard({ 
   isDarkMode,
   setIsDarkMode,
+  isNavigationVisible,
+  onToggleNavigation,
   stats, 
   updateStat, 
   onBack, 
   orderPrefix, 
   onPrefixChange,
+  isDriftActive,
+  setIsDriftActive,
+  showCompletionToast,
+  setShowCompletionToast,
+  driftSettings,
+  onToggleDriftDirection,
+  onAdjustDriftStep,
+  driftInterval,
+  setDriftInterval,
   orders
 }: StatsDashboardProps) {
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isDriftActive, setIsDriftActive] = useState(true);
-  const [driftInterval, setDriftInterval] = useState(1000); // Default now 1s for faster feel
   
   // Chart data state
   const [chartData, setChartData] = useState<{time: string, accepted: number, completed: number}[]>([]);
-
-  // Drift settings: [statKey, deltaAmount]
-  const [driftSettings, setDriftSettings] = useState<Record<string, number>>({
-    activeOrders: 2,
-    onlineRiders: 1,
-    deliveredToday: 3,
-    completedTotal: 2
-  });
 
   // Initialize and update chart data
   useEffect(() => {
@@ -71,29 +83,11 @@ export default function StatsDashboard({
     setChartData(historical);
   }, []);
 
-  const [showCompletionToast, setShowCompletionToast] = useState(false);
-
-  // Auto-drift logic
+  // Chart update logic
   useEffect(() => {
     if (!isDriftActive) return;
 
-    // Check for completion
-    if (stats.activeOrders === 0 && stats.onlineRiders === 0 && isDriftActive) {
-      setShowCompletionToast(true);
-      return;
-    }
-
     const interval = setInterval(() => {
-      Object.entries(driftSettings).forEach(([key, value]) => {
-        const delta = value as number;
-        // Large random jumps as requested (2-digit to 3-digit: 10-150 range)
-        const isReducing = delta < 0;
-        const randomMagnitude = Math.floor(Math.random() * 140) + 10;
-        const finalDelta = isReducing ? -randomMagnitude : randomMagnitude;
-        
-        updateStat(key as keyof SystemStats, finalDelta);
-      });
-
       // Update chart with live-feeling data
       setChartData(prev => {
         const newData = [...prev.slice(1), {
@@ -106,7 +100,7 @@ export default function StatsDashboard({
     }, driftInterval);
 
     return () => clearInterval(interval);
-  }, [isDriftActive, driftSettings, updateStat, driftInterval, stats.activeOrders, stats.onlineRiders]);
+  }, [isDriftActive, driftInterval]);
 
   const handleManualInput = (key: keyof SystemStats, value: string) => {
     const num = parseInt(value.replace(/,/g, ''), 10);
@@ -115,20 +109,6 @@ export default function StatsDashboard({
        updateStat(key, num - current);
        if (num > 0) setShowCompletionToast(false);
     }
-  };
-
-  const toggleDriftDirection = (key: string) => {
-    setDriftSettings(prev => ({
-      ...prev,
-      [key]: prev[key] * -1
-    }));
-  };
-
-  const adjustDriftStep = (key: string, delta: number) => {
-    setDriftSettings(prev => ({
-      ...prev,
-      [key]: Math.max(0, Math.abs(prev[key]) + delta) * (prev[key] >= 0 ? 1 : -1)
-    }));
   };
 
   const themeClasses = {
@@ -143,29 +123,35 @@ export default function StatsDashboard({
   };
 
   return (
-    <div className={cn("min-h-screen p-8 font-sans relative overflow-hidden transition-colors duration-500", themeClasses.bg)}>
+    <div className={cn("min-h-screen p-4 md:p-8 font-sans relative overflow-hidden transition-colors duration-500", themeClasses.bg)}>
       {/* Global Completion Notification */}
       <AnimatePresence>
         {showCompletionToast && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
             className={cn(
-              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] px-16 py-12 rounded-[40px] border-2 shadow-[0_0_150px_rgba(255,107,0,0.3)] flex flex-col items-center gap-6 text-center backdrop-blur-[40px]", 
+              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] px-8 md:px-16 py-10 md:py-12 rounded-[30px] md:rounded-[40px] border-2 shadow-[0_0_150px_rgba(255,107,0,0.3)] flex flex-col items-center gap-4 md:gap-6 text-center backdrop-blur-[40px] w-[90%] md:w-auto max-w-lg", 
               isDarkMode ? "bg-black/60 border-[#FF6B00]/40" : "bg-white/80 border-[#FF6B00]/30"
             )}
           >
-            <div className="w-24 h-24 bg-[#FF6B00]/10 rounded-full flex items-center justify-center border-2 border-[#FF6B00]/40 shadow-[0_0_30px_rgba(255,107,0,0.2)]">
-               <ShieldCheck className="w-12 h-12 text-[#FF6B00] animate-bounce" />
+            <button 
+              onClick={() => setShowCompletionToast(false)}
+              className="absolute top-4 right-4 md:top-6 md:right-6 p-2 rounded-full hover:bg-white/10 transition-colors opacity-50 hover:opacity-100"
+            >
+              <X className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <div className="w-16 h-16 md:w-24 md:h-24 bg-[#FF6B00]/10 rounded-full flex items-center justify-center border-2 border-[#FF6B00]/40 shadow-[0_0_30px_rgba(255,107,0,0.2)]">
+               <ShieldCheck className="w-8 h-8 md:w-12 md:h-12 text-[#FF6B00] animate-bounce" />
             </div>
-            <div className="space-y-2">
-              <h2 className={cn("text-5xl font-black italic uppercase tracking-tighter", isDarkMode ? "text-white" : "text-zinc-900")}>全部订单已完成</h2>
-              <p className="text-[#FF6B00] font-mono text-xs tracking-[0.3em] font-bold uppercase opacity-80">System Status: All Operations Success</p>
+            <div className="space-y-1 md:space-y-2">
+              <h2 className={cn("text-3xl md:text-5xl font-black italic uppercase tracking-tighter", isDarkMode ? "text-white" : "text-zinc-900")}>全部订单已完成</h2>
+              <p className="text-[#FF6B00] font-mono text-[8px] md:text-xs tracking-[0.2em] md:tracking-[0.3em] font-bold uppercase opacity-80 uppercase">System Status: All Operations Success</p>
             </div>
             <button 
               onClick={() => setShowCompletionToast(false)}
-              className="mt-6 px-12 py-4 bg-[#FF6B00] text-white font-black uppercase tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[#FF6B00]/30"
+              className="mt-4 md:mt-6 px-8 md:px-12 py-3 md:py-4 bg-[#FF6B00] text-white text-xs md:text-sm font-black uppercase tracking-widest rounded-xl md:rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[#FF6B00]/30"
             >
               继续监控
             </button>
@@ -173,26 +159,28 @@ export default function StatsDashboard({
         )}
       </AnimatePresence>
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+        <div className="flex items-center gap-4 w-full md:w-auto">
           {onBack && (
             <button 
               onClick={onBack}
-              className={cn("p-3 rounded-xl border transition-all active:scale-95 group", themeClasses.glass)}
+              className={cn("p-2 md:p-3 rounded-xl border transition-all active:scale-95 group", themeClasses.glass)}
             >
-              <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
+              <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 group-hover:-translate-x-1 transition-transform" />
             </button>
           )}
           <div className="flex items-center gap-4">
             <div>
-              <div className="flex items-center gap-3">
-                <Logo size="lg" />
-                <h1 className={cn("text-4xl font-black tracking-tighter uppercase italic", themeClasses.textMain)}>
+              <div className="flex items-center gap-2 md:gap-3">
+                <div onDoubleClick={onToggleNavigation} className="cursor-pointer">
+                  <Logo size="lg" />
+                </div>
+                <h1 className={cn("text-2xl md:text-4xl font-black tracking-tighter uppercase italic", themeClasses.textMain)}>
                   <span className="text-[#FF6B00]">极速监控</span> 终端
-                  <span className="bg-accent-green/10 border border-accent-green/20 px-2 py-0.5 rounded text-[10px] font-mono non-italic tracking-normal text-accent-green animate-pulse ml-2">● SIGNAL ACTIVE</span>
+                  <span className="bg-accent-green/10 border border-accent-green/20 px-2 py-0.5 rounded text-[8px] md:text-[10px] font-mono non-italic tracking-normal text-accent-green animate-pulse ml-2">● SIGNAL ACTIVE</span>
                 </h1>
               </div>
-              <p className="text-xs uppercase tracking-[0.4em] font-mono text-[#FF6B00]/60 mt-1 flex items-center gap-2">
+              <p className="text-[9px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.4em] font-mono text-[#FF6B00]/60 mt-1 flex items-center gap-2">
                 <ShieldCheck className="w-3 h-3" />
                 Ultra-Fast Real-time Analytics Engine
               </p>
@@ -200,25 +188,25 @@ export default function StatsDashboard({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className={cn("px-6 py-3 rounded-xl border flex items-center gap-4", themeClasses.glass)}>
+        <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
+          <div className={cn("px-4 md:px-6 py-2 md:py-3 rounded-xl border flex items-center gap-4 shrink-0", themeClasses.glass)}>
             <div className="flex flex-col items-end">
-               <p className="text-[10px] font-mono opacity-50 uppercase mb-0.5 flex items-center gap-1">
+               <p className="text-[8px] md:text-[10px] font-mono opacity-50 uppercase mb-0.5 flex items-center gap-1">
                  <Zap className="w-3 h-3 text-accent-amber" />
                  全局同步时钟
                </p>
-               <p className={cn("text-sm font-bold font-mono tracking-widest italic uppercase", themeClasses.textMain)}>{new Date().toLocaleTimeString()}</p>
+               <p className={cn("text-xs md:text-sm font-bold font-mono tracking-widest italic uppercase", themeClasses.textMain)}>{new Date().toLocaleTimeString()}</p>
             </div>
-            <div className={cn("w-px h-8", themeClasses.border)} />
+            <div className={cn("w-px h-6 md:h-8", themeClasses.border)} />
             <button 
               onClick={() => setIsEditMode(!isEditMode)}
               className={cn(
-                 "flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all border",
+                 "flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-[8px] md:text-[10px] font-black tracking-widest uppercase transition-all border",
                  isEditMode ? "bg-[#FF6B00] border-[#FF6B00] text-white shadow-[0_0_20px_#e95a32]" : "bg-[#FF6B00] border-[#FF6B00] text-white hover:opacity-90 shadow-[0_0_10px_rgba(255,107,0,0.3)]"
               )}
             >
-              <Settings className="w-4 h-4" />
-              {isEditMode ? "保存并锁定" : "调试模式"}
+              <Settings className="w-3 h-3 md:w-4 md:h-4" />
+              {isEditMode ? "锁定" : "调试"}
             </button>
           </div>
         </div>
@@ -317,8 +305,8 @@ export default function StatsDashboard({
           isEdit={isEditMode}
           driftDelta={driftSettings.activeOrders}
           onValueChange={(val: string) => handleManualInput('activeOrders', val)}
-          onDirectionToggle={() => toggleDriftDirection('activeOrders')}
-          onStepAdjust={(d: number) => adjustDriftStep('activeOrders', d)}
+          onDirectionToggle={() => onToggleDriftDirection('activeOrders')}
+          onStepAdjust={(d: number) => onAdjustDriftStep('activeOrders', d)}
           highlight
         />
         <BigStatCard 
@@ -330,8 +318,8 @@ export default function StatsDashboard({
           isDarkMode={isDarkMode}
           driftDelta={driftSettings.onlineRiders}
           onValueChange={(val: string) => handleManualInput('onlineRiders', val)}
-          onDirectionToggle={() => toggleDriftDirection('onlineRiders')}
-          onStepAdjust={(d: number) => adjustDriftStep('onlineRiders', d)}
+          onDirectionToggle={() => onToggleDriftDirection('onlineRiders')}
+          onStepAdjust={(d: number) => onAdjustDriftStep('onlineRiders', d)}
           highlight
         />
         <BigStatCard 
@@ -342,8 +330,8 @@ export default function StatsDashboard({
           isEdit={isEditMode}
           driftDelta={driftSettings.completedTotal}
           onValueChange={(val: string) => handleManualInput('completedTotal', val)}
-          onDirectionToggle={() => toggleDriftDirection('completedTotal')}
-          onStepAdjust={(d: number) => adjustDriftStep('completedTotal', d)}
+          onDirectionToggle={() => onToggleDriftDirection('completedTotal')}
+          onStepAdjust={(d: number) => onAdjustDriftStep('completedTotal', d)}
           highlight
         />
       </div>
@@ -518,7 +506,7 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
   return (
     <div className={cn(
       "rounded-2xl border transition-all relative overflow-hidden group/card backdrop-blur-3xl",
-      highlight ? "p-10 border-[#FF6B00]/20 bg-[#FF6B00]/5" : "p-6 border-white/5",
+      highlight ? "p-6 md:p-10 border-[#FF6B00]/20 bg-[#FF6B00]/5" : "p-4 md:p-6 border-white/5",
       isDarkMode ? "bg-white/[0.03]" : "bg-white/90 border-brand-primary/10 shadow-sm",
       highlight && "shadow-[0_0_60px_rgba(233,90,50,0.08)]",
       isEdit && "border-[#FF6B00]/50 ring-2 ring-[#FF6B00]/10"
@@ -527,9 +515,9 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF6B00]/10 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
       )}
       
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-4 md:mb-8">
         <div className={cn(
-          "p-4 bg-white/5 rounded-2xl transition-all group-hover/card:scale-110 duration-700", 
+          "p-3 md:p-4 bg-white/5 rounded-2xl transition-all group-hover/card:scale-110 duration-700", 
           highlight && "bg-[#FF6B00]/15 shadow-[0_0_30px_rgba(233,90,50,0.2)]"
         )}>
           {icon}
@@ -540,7 +528,7 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
             <button 
               onClick={onDirectionToggle}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-xl border",
+                "flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-2 rounded-xl text-[8px] md:text-[10px] font-black uppercase transition-all shadow-xl border",
                 driftDelta >= 0 ? "bg-accent-green/20 text-accent-green border-accent-green/30" : "bg-accent-red/20 text-accent-red border-accent-red/30"
               )}
             >
@@ -553,8 +541,8 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
 
       <div>
         <p className={cn(
-          "uppercase font-bold tracking-widest opacity-50 mb-3 flex items-center gap-2",
-          highlight ? "text-[13px]" : "text-[10px]",
+          "uppercase font-bold tracking-widest opacity-50 mb-2 md:mb-3 flex items-center gap-2",
+          highlight ? "text-[11px] md:text-[13px]" : "text-[8px] md:text-[10px]",
           isDarkMode ? "text-zinc-400" : "text-orange-950/40"
         )}>
            <span className="w-2 h-2 rounded-sm bg-[#FF6B00] rotate-45" />
@@ -562,13 +550,13 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
         </p>
         
         {isEdit ? (
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             <input 
               type="text"
               className={cn(
-                 "border rounded-xl px-4 py-3 font-black w-full outline-none focus:border-[#FF6B00] transition-all text-center",
+                 "border rounded-xl px-3 md:px-4 py-2 md:py-3 font-black w-full outline-none focus:border-[#FF6B00] transition-all text-center",
                  isDarkMode ? "bg-white/5 border-white/10 text-white" : "bg-white border-brand-primary/20 text-zinc-900",
-                 highlight ? "text-5xl" : "text-3xl"
+                 highlight ? "text-3xl md:text-5xl" : "text-xl md:text-3xl"
               )}
               placeholder="0"
               defaultValue={value}
@@ -580,26 +568,26 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
               }}
             />
             
-            <div className={cn("flex items-center justify-between p-3 rounded-xl border backdrop-blur-md", isDarkMode ? "bg-black/40 border-white/5" : "bg-white/50 border-brand-primary/10")}>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B00]/60">跳动强度: {Math.abs(driftDelta)}</span>
+            <div className={cn("flex items-center justify-between p-2 md:p-3 rounded-xl border backdrop-blur-md", isDarkMode ? "bg-black/40 border-white/5" : "bg-white/50 border-brand-primary/10")}>
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-[#FF6B00]/60">强度: {Math.abs(driftDelta)}</span>
                 <div className="flex gap-2">
-                   <button onClick={() => onStepAdjust(-1)} className={cn("p-2 rounded-lg transition-colors border", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Minus className={cn("w-4 h-4", isDarkMode ? "text-white" : "text-zinc-900")} /></button>
-                   <button onClick={() => onStepAdjust(1)} className={cn("p-2 rounded-lg transition-colors border", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Plus className={cn("w-4 h-4", isDarkMode ? "text-white" : "text-zinc-900")} /></button>
+                   <button onClick={() => onStepAdjust(-1)} className={cn("p-1.5 md:p-2 rounded-lg transition-colors border", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Minus className={cn("w-3 h-3 md:w-4 md:h-4", isDarkMode ? "text-white" : "text-zinc-900")} /></button>
+                   <button onClick={() => onStepAdjust(1)} className={cn("p-1.5 md:p-2 rounded-lg transition-colors border", isDarkMode ? "hover:bg-white/10 border-white/10" : "hover:bg-orange-50 border-orange-200/30")}><Plus className={cn("w-3 h-3 md:w-4 md:h-4", isDarkMode ? "text-white" : "text-zinc-900")} /></button>
                 </div>
             </div>
           </div>
         ) : (
           <div className="relative">
             <h3 className={cn(
-              "font-black tracking-tighter italic flex items-baseline gap-3",
+              "font-black tracking-tighter italic flex items-baseline gap-2 md:gap-3",
               isDarkMode ? "text-white" : "text-zinc-900",
-              highlight ? "text-7xl" : "text-5xl"
+              highlight ? "text-4xl md:text-7xl" : "text-3xl md:text-5xl"
             )}>
               {typeof value === 'number' ? value.toLocaleString() : value}
               <motion.span 
                 animate={{ opacity: [0.2, 0.8, 0.2], scale: [1, 1.1, 1] }}
                 transition={{ duration: 0.5, repeat: Infinity }}
-                className="text-[12px] non-italic font-black uppercase tracking-widest text-accent-green font-mono"
+                className="text-[9px] md:text-[12px] non-italic font-black uppercase tracking-widest text-accent-green font-mono"
               >
                 ●
               </motion.span>
@@ -608,8 +596,8 @@ function BigStatCard({ icon, label, value, sub, highlight, isEdit, driftDelta, o
         )}
         
         <p className={cn(
-          "opacity-30 uppercase tracking-[0.3em] mt-6 font-mono flex items-center gap-2",
-          highlight ? "text-[11px]" : "text-[9px]",
+          "opacity-30 uppercase tracking-[0.2em] md:tracking-[0.3em] mt-4 md:mt-6 font-mono flex items-center gap-2",
+          highlight ? "text-[9px] md:text-[11px]" : "text-[7px] md:text-[9px]",
           isDarkMode ? "text-zinc-400" : "text-orange-950/30"
         )}>
           <TrendingUp className="w-4 h-4" />

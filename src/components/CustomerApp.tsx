@@ -51,10 +51,18 @@ const INITIAL_PRODUCTS: Product[] = [
 interface CustomerAppProps {
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
+  isNavigationVisible: boolean;
+  onToggleNavigation: () => void;
   onNavigate?: (view: 'customer' | 'backend' | 'analytics') => void;
 }
 
-export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: CustomerAppProps) {
+export default function CustomerApp({ 
+  isDarkMode, 
+  setIsDarkMode, 
+  isNavigationVisible,
+  onToggleNavigation,
+  onNavigate 
+}: CustomerAppProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | '全部'>('全部');
   const [isEditMode, setIsEditMode] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -151,7 +159,9 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
       <header className={cn("sticky top-0 z-50 backdrop-blur-xl border-b px-4 py-3 transition-colors duration-500", themeClasses.header)}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Logo size="md" />
+            <div onDoubleClick={onToggleNavigation} className="cursor-pointer">
+              <Logo size="md" />
+            </div>
             <div className={cn("hidden lg:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest font-mono opacity-60", themeClasses.textInvert)}>
               <MapPin className="w-4 h-4 text-brand-primary" />
               吉隆坡
@@ -211,35 +221,41 @@ export default function CustomerApp({ isDarkMode, setIsDarkMode, onNavigate }: C
                       )}
                     >
                       <div className="p-2 border-b border-white/5 mb-2">
-                        <p className={cn("text-[10px] uppercase font-bold tracking-widest opacity-40 mb-1", isDarkMode ? "text-white" : "text-zinc-600")}>高级通道</p>
+                        <p className={cn("text-[10px] uppercase font-bold tracking-widest opacity-40 mb-1", isDarkMode ? "text-white" : "text-zinc-600")}>
+                          {isNavigationVisible ? "高级通道" : "账户设置"}
+                        </p>
                       </div>
-                      <button 
-                        onClick={() => {
-                          onNavigate?.('backend');
-                          setIsUserMenuOpen(false);
-                        }}
-                        className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all", isDarkMode ? "hover:bg-white/10 text-zinc-300" : "hover:bg-zinc-100 text-zinc-700")}
-                      >
-                        <LayoutDashboard className="w-4 h-4 text-brand-primary" />
-                        终端后台
+                      {isNavigationVisible && (
+                        <>
+                          <button 
+                            onClick={() => {
+                              onNavigate?.('backend');
+                              setIsUserMenuOpen(false);
+                            }}
+                            className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all", isDarkMode ? "hover:bg-white/10 text-zinc-300" : "hover:bg-zinc-100 text-zinc-700")}
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-brand-primary" />
+                            终端后台
+                          </button>
+                          <button 
+                            onClick={() => {
+                              onNavigate?.('analytics');
+                              setIsUserMenuOpen(false);
+                            }}
+                            className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all", isDarkMode ? "hover:bg-white/10 text-zinc-300" : "hover:bg-zinc-100 text-zinc-700")}
+                          >
+                            <BarChart3 className="w-4 h-4 text-accent-green" />
+                            核心看板
+                          </button>
+                          <div className="my-2 border-t border-white/5 pt-2">
+                            <p className={cn("text-[10px] uppercase font-bold tracking-widest opacity-40 mb-1 px-2", isDarkMode ? "text-white" : "text-zinc-600")}>账户设置</p>
+                          </div>
+                        </>
+                      )}
+                      <button className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all", isDarkMode ? "hover:bg-white/10 text-zinc-300" : "hover:bg-zinc-100 text-zinc-700")}>
+                         <User className="w-4 h-4 opacity-40" />
+                         个人资料
                       </button>
-                      <button 
-                        onClick={() => {
-                          onNavigate?.('analytics');
-                          setIsUserMenuOpen(false);
-                        }}
-                        className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all", isDarkMode ? "hover:bg-white/10 text-zinc-300" : "hover:bg-zinc-100 text-zinc-700")}
-                      >
-                        <BarChart3 className="w-4 h-4 text-accent-green" />
-                        核心看板
-                      </button>
-                      <div className="my-2 border-t border-white/5 pt-2">
-                        <p className={cn("text-[10px] uppercase font-bold tracking-widest opacity-40 mb-1 px-2", isDarkMode ? "text-white" : "text-zinc-600")}>账户设置</p>
-                        <button className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all", isDarkMode ? "hover:bg-white/10 text-zinc-300" : "hover:bg-zinc-100 text-zinc-700")}>
-                           <User className="w-4 h-4 opacity-40" />
-                           个人资料
-                        </button>
-                      </div>
                     </motion.div>
                   </>
                 )}

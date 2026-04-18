@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard, Sun, Moon } from 'lucide-react';
+import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard, Sun, Moon, X } from 'lucide-react';
 import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Point, Rider, Order, SystemStats } from '../types';
@@ -13,20 +13,40 @@ const HEIGHT = 800;
 interface BackendDashboardProps {
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
+  isNavigationVisible: boolean;
+  onToggleNavigation: () => void;
   propsStats: SystemStats;
   propsUpdateStat: (key: keyof SystemStats, delta: number) => void;
   orderPrefix: string;
   onPrefixChange: (prefix: string) => void;
+  targetOrderCount: number;
+  setTargetOrderCount: (val: number) => void;
+  isDriftActive: boolean;
+  setIsDriftActive: (val: boolean) => void;
+  showCompletionToast: boolean;
+  setShowCompletionToast: (val: boolean) => void;
+  driftSettings: Record<string, number>;
+  onToggleDriftDirection: (key: string) => void;
   orders: Order[];
 }
 
 export default function BackendDashboard({ 
   isDarkMode,
   setIsDarkMode,
+  isNavigationVisible,
+  onToggleNavigation,
   propsStats, 
   propsUpdateStat, 
   orderPrefix, 
   onPrefixChange,
+  targetOrderCount,
+  setTargetOrderCount,
+  isDriftActive,
+  setIsDriftActive,
+  showCompletionToast,
+  setShowCompletionToast,
+  driftSettings,
+  onToggleDriftDirection,
   orders 
 }: BackendDashboardProps) {
   const [riders, setRiders] = useState<Rider[]>([]);
@@ -50,7 +70,6 @@ export default function BackendDashboard({
 
   const [routeOffset, setRouteOffset] = useState(0);
 
-  const [showNotification, setShowNotification] = useState(false);
   const [isAutoSpawning, setIsAutoSpawning] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [isManagementUnlocked, setIsManagementUnlocked] = useState(false); 
@@ -107,17 +126,6 @@ export default function BackendDashboard({
     });
   }, [propsStats.onlineRiders]);
 
-  // Check for global completion state
-  useEffect(() => {
-    if (propsStats.activeOrders === 0 && propsStats.onlineRiders === 0) {
-      if (!showNotification) {
-         setShowNotification(true);
-      }
-    } else {
-      setShowNotification(false);
-    }
-  }, [propsStats.activeOrders, propsStats.onlineRiders, showNotification]);
-
   // Sync active order with local display
   useEffect(() => {
     const pendingOrders = orders.filter(o => o.status === 'pending');
@@ -169,23 +177,64 @@ export default function BackendDashboard({
 
   return (
     <div className={cn("flex h-screen overflow-hidden font-sans transition-colors duration-500", themeClasses.bg)}>
+      {/* Global Completion Notification */}
+      <AnimatePresence>
+        {showCompletionToast && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className={cn(
+              "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] px-8 md:px-16 py-10 md:py-12 rounded-[30px] md:rounded-[40px] border-2 shadow-[0_0_150px_rgba(255,107,0,0.3)] flex flex-col items-center gap-4 md:gap-6 text-center backdrop-blur-[40px] w-[90%] md:w-auto max-w-lg", 
+              isDarkMode ? "bg-black/60 border-[#FF6B00]/40" : "bg-white/80 border-[#FF6B00]/30"
+            )}
+          >
+            <button 
+              onClick={() => setShowCompletionToast(false)}
+              className="absolute top-4 right-4 md:top-6 md:right-6 p-2 rounded-full hover:bg-white/10 transition-colors opacity-50 hover:opacity-100"
+            >
+              <X className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <div className="w-16 h-16 md:w-24 md:h-24 bg-[#FF6B00]/10 rounded-full flex items-center justify-center border-2 border-[#FF6B00]/40 shadow-[0_0_30px_rgba(255,107,0,0.2)]">
+               <ShieldCheck className="w-8 h-8 md:w-12 md:h-12 text-[#FF6B00] animate-bounce" />
+            </div>
+            <div className="space-y-1 md:space-y-2">
+              <h2 className={cn("text-3xl md:text-5xl font-black italic uppercase tracking-tighter", isDarkMode ? "text-white" : "text-zinc-900")}>全部订单已完成</h2>
+              <p className="text-[#FF6B00] font-mono text-[8px] md:text-xs tracking-[0.2em] md:tracking-[0.3em] font-bold uppercase opacity-80 uppercase">System Status: All Operations Success</p>
+            </div>
+            <button 
+              onClick={() => setShowCompletionToast(false)}
+              className="mt-4 md:mt-6 px-8 md:px-12 py-3 md:py-4 bg-[#FF6B00] text-white text-xs md:text-sm font-black uppercase tracking-widest rounded-xl md:rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-[#FF6B00]/30"
+            >
+              继续监控
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sidebar Stats */}
       <motion.div 
         initial={false}
         animate={{ 
-          width: isSidebarOpen ? 320 : 0,
+          width: isSidebarOpen ? (window.innerWidth < 768 ? '85%' : 320) : 0,
           opacity: isSidebarOpen ? 1 : 0,
-          marginLeft: isSidebarOpen ? 24 : 0,
+          marginLeft: isSidebarOpen ? (window.innerWidth < 768 ? 0 : 24) : 0,
           marginRight: isSidebarOpen ? 0 : 0
         }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className={cn("flex flex-col backdrop-blur-xl z-20 my-6 rounded-lg overflow-hidden relative border", themeClasses.glass)}
+        className={cn(
+          "flex flex-col backdrop-blur-xl z-40 my-6 rounded-lg overflow-hidden border transition-all duration-500", 
+          isSidebarOpen && window.innerWidth < 768 ? "absolute inset-y-6 left-4 right-4 shadow-2xl" : "relative",
+          themeClasses.glass
+        )}
       >
         <div className={cn("p-6 border-b shrink-0", themeClasses.border)}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
               <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse shadow-[0_0_8px_#39ff14] shrink-0" />
-              <Logo size="md" />
+              <div onDoubleClick={onToggleNavigation} className="cursor-pointer">
+                <Logo size="md" />
+              </div>
               <span className={cn("text-sm font-black tracking-tighter uppercase", themeClasses.textMain)}>调度中心</span>
             </div>
             <button onClick={() => setShowSettings(!showSettings)} className="text-[#FF6B00] p-1 hover:bg-white/5 rounded transition-colors shrink-0">
@@ -254,72 +303,79 @@ export default function BackendDashboard({
                   <div className={cn("pt-2 border-t", themeClasses.border)}>
                     <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">模拟动态控制</label>
                     <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[8px] opacity-40 uppercase tracking-widest">配送响应速度: {simulationSpeed}x</span>
-                          <span className="text-[8px] text-accent-green font-bold">加速开启</span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="0.2" 
-                          max="5" 
-                          step="0.1" 
-                          value={simulationSpeed} 
-                          onChange={(e) => setSimulationSpeed(parseFloat(e.target.value))}
-                          className="w-full accent-[#FF6B00] h-1 rounded-lg bg-white/10 appearance-none cursor-pointer"
-                        />
+                      <div className="flex justify-between items-center bg-white/5 p-2 rounded">
+                        <span className="text-[8px] opacity-60 uppercase font-bold">全局状态更新</span>
+                        <button 
+                          onClick={() => setIsDriftActive(!isDriftActive)}
+                          className={cn("px-2 py-1 rounded text-[8px] font-bold uppercase transition-all", isDriftActive ? "bg-accent-green text-black" : "bg-red-500/20 text-red-500 border border-red-500/30")}
+                        >
+                          {isDriftActive ? "运行中" : "已暂停"}
+                        </button>
                       </div>
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[8px] opacity-40 uppercase tracking-widest">活跃路线密度: {routeDensity}</span>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center px-1">
+                          <div className="flex flex-col">
+                            <span className="text-[8px] opacity-40 uppercase tracking-widest font-bold">活跃订单目标</span>
+                            <span className="text-[10px] text-accent-amber font-mono">{targetOrderCount}</span>
+                          </div>
+                          <button 
+                            onClick={() => onToggleDriftDirection('activeOrders')}
+                            className={cn("px-2 py-1 rounded text-[8px] font-bold uppercase transition-all", driftSettings.activeOrders >= 0 ? "bg-accent-green/20 text-accent-green" : "bg-red-500/20 text-red-500")}
+                          >
+                            {driftSettings.activeOrders >= 0 ? "加速递增" : "加速递减"}
+                          </button>
                         </div>
                         <input 
                           type="range" 
                           min="1" 
-                          max="50" 
+                          max="150" 
                           step="1" 
-                          value={routeDensity} 
-                          onChange={(e) => setRouteDensity(parseInt(e.target.value))}
-                          className="w-full accent-[#FF6B00] h-1 rounded-lg bg-white/10 appearance-none cursor-pointer"
+                          value={targetOrderCount} 
+                          onChange={(e) => setTargetOrderCount(parseInt(e.target.value))}
+                          className="w-full h-1 bg-white/5 rounded-lg appearance-none cursor-pointer accent-[#FF6B00]"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center px-1">
+                          <div className="flex flex-col">
+                            <span className="text-[8px] opacity-40 uppercase tracking-widest font-bold">在线骑手数量</span>
+                            <span className="text-[10px] text-accent-green font-mono">{propsStats.onlineRiders}</span>
+                          </div>
+                          <button 
+                            onClick={() => onToggleDriftDirection('onlineRiders')}
+                            className={cn("px-2 py-1 rounded text-[8px] font-bold uppercase transition-all", driftSettings.onlineRiders >= 0 ? "bg-accent-green/20 text-accent-green" : "bg-red-500/20 text-red-500")}
+                          >
+                            {driftSettings.onlineRiders >= 0 ? "加速递增" : "加速递减"}
+                          </button>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="1000" 
+                          step="1" 
+                          value={propsStats.onlineRiders} 
+                          onChange={(e) => propsUpdateStat('onlineRiders', parseInt(e.target.value) - propsStats.onlineRiders)}
+                          className="w-full h-1 bg-white/5 rounded-lg appearance-none cursor-pointer accent-accent-green"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className={cn("pt-2 border-t", themeClasses.border)}>
-                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">自定义地图背景</label>
-                    <div className="flex flex-col gap-2">
-                      <label className={cn("flex items-center justify-center gap-2 py-2 border border-dashed rounded cursor-pointer hover:bg-white/5 transition-all text-[10px]", themeClasses.border)}>
-                        <MapPin className="w-3 h-3 text-[#FF6B00]" />
-                        <span className="opacity-60">上传本地地图照片</span>
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                localStorage.setItem('taowei_custom_map', reader.result as string);
-                                window.location.reload();
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                      </label>
-                      {localStorage.getItem('taowei_custom_map') && (
-                        <button 
-                          onClick={() => {
-                            localStorage.removeItem('taowei_custom_map');
-                            window.location.reload();
-                          }}
-                          className="text-[8px] text-red-500 uppercase font-bold text-center hover:underline"
-                        >
-                          重置为默认动态地图
-                        </button>
-                      )}
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">地图校准信息</label>
+                    <div className="bg-white/5 p-2 rounded border border-white/5">
+                      <p className="text-[8px] opacity-40 italic leading-tight mb-2">手动校准将应用于全局渲染引擎以确保背景参考图与地理数据对齐。</p>
+                      <button 
+                        onClick={() => {
+                          localStorage.removeItem('taowei_custom_map');
+                          window.location.reload();
+                        }}
+                        className="w-full text-[8px] bg-red-500/20 text-red-500 border border-red-500/30 uppercase font-bold py-2 rounded hover:bg-red-500/30 transition-all font-mono"
+                      >
+                        RESET_CALIBRATION_CACHE
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -435,18 +491,22 @@ export default function BackendDashboard({
       </motion.div>
 
       {/* Main Map Area */}
-      <div className={cn("flex-1 relative overflow-hidden m-4 ml-0 my-6 mr-6 rounded-lg border shadow-inner transition-colors duration-500", isDarkMode ? "bg-zinc-950 border-white/5" : "bg-white border-brand-primary/10")}>
+      <div className={cn(
+        "flex-1 relative overflow-hidden transition-all duration-500 rounded-lg border",
+        "md:m-4 md:ml-0 md:my-6 md:mr-6 m-2 my-4 shadow-inner",
+        isDarkMode ? "bg-zinc-950 border-white/5" : "bg-white border-brand-primary/10"
+      )}>
         {/* Toggle Sidebar Button */}
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
-            "absolute top-6 left-6 z-30 p-2 rounded-full border transition-all pointer-events-auto",
+            "absolute top-4 left-4 md:top-6 md:left-6 z-50 p-2 md:p-3 rounded-xl md:rounded-full border transition-all pointer-events-auto",
             isSidebarOpen 
-              ? (isDarkMode ? "bg-transparent border-white/10 opacity-0 md:opacity-100 -translate-x-full hover:bg-white/5" : "bg-transparent border-brand-primary/10 opacity-0 md:opacity-100 -translate-x-full hover:bg-brand-primary/5")
+              ? (isDarkMode ? "bg-zinc-900 md:bg-transparent border-white/10 opacity-100 md:opacity-100 md:-translate-x-full hover:bg-white/5" : "bg-white md:bg-transparent border-brand-primary/10 opacity-100 md:opacity-100 md:-translate-x-full hover:bg-brand-primary/5")
               : "bg-[#FF6B00] text-white border-[#FF6B00] shadow-2xl scale-110"
           )}
         >
-          {isSidebarOpen ? <Minus className="w-4 h-4" /> : <LayoutDashboard className="w-4 h-4" />}
+          {isSidebarOpen ? <X className="w-5 h-5" /> : <LayoutDashboard className="w-5 h-5" />}
         </button>
 
         {/* Map Background Image */}
@@ -612,23 +672,23 @@ export default function BackendDashboard({
                 key={rider.id}
                 cx={rider.pos.x}
                 cy={rider.pos.y}
-                r={isAssigned ? 5 : 2}
+                r={isAssigned ? 8 : 4}
                 fill={isAssigned ? "#FFFF00" : "#39ff14"}
                 className={cn(
                   "transition-all duration-300",
-                  isAssigned ? "opacity-100" : "opacity-60"
+                  isAssigned ? "opacity-100" : "opacity-80"
                 )}
-                filter={isAssigned ? "url(#glow-yellow)" : "url(#glow-green)"}
+                filter={isAssigned ? "url(#glow-green)" : "url(#glow-green)"}
               />
             );
           })}
         </svg>
 
-        <div className={cn("absolute bottom-6 left-8 font-mono text-[10px] opacity-50 tracking-widest z-20", isDarkMode ? "text-[#FF6B00]" : "text-zinc-600")}>
+        <div className={cn("absolute bottom-6 left-8 font-mono text-[10px] opacity-50 tracking-widest z-20 hidden md:block", isDarkMode ? "text-[#FF6B00]" : "text-zinc-600")}>
            坐标: 3.1390° N | 101.6869° E | 核心节点 [在线]
         </div>
 
-        <div className="absolute top-6 right-6 flex flex-col items-end gap-3 pointer-events-none z-20">
+        <div className="absolute top-6 right-6 hidden md:flex flex-col items-end gap-3 pointer-events-none z-20">
           <div className={cn("p-3 rounded border flex items-center gap-6 backdrop-blur-md", themeClasses.glass)}>
              <div className="text-right">
                 <p className="text-[9px] uppercase tracking-widest opacity-50">本地系统时间</p>
@@ -655,27 +715,6 @@ export default function BackendDashboard({
             {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </div>
-
-        <AnimatePresence>
-          {showNotification && (
-            <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="bg-accent-green text-black px-12 py-8 rounded-sm font-black shadow-[0_0_50px_rgba(57,255,20,0.4)] flex flex-col items-center gap-4 uppercase tracking-tighter border-4 border-black/20 pointer-events-auto"
-              >
-                <div className="w-16 h-16 rounded-full bg-black/10 flex items-center justify-center">
-                  <ShieldCheck className="w-8 h-8" />
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl mb-1">所有订单已完成</p>
-                  <p className="text-[10px] tracking-[0.4em] opacity-60">系统进入待命状态 | 调度核心就绪</p>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence>
           {activeOrderId && activeOrder && activeOrder.status !== 'completed' && (

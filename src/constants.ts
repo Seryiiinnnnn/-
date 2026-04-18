@@ -9,7 +9,7 @@ export const ASSETS = {
   PENCAI: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAETTcdp4haYnmq2D1_WzTUp2MkiDIXtEQACKigAAogEEFf-_HnElCHQCzsE.png",
   
   // 首页大背景图
-  HERO: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAETTcZp4haBWPK-gRz1B42NTYC5ilpNxwACKSgAAogEEFc6Qj-Jx_1zZjsE.jpeg",
+  HERO: "https://img.sanishtech.com/u/4b9563d1045d6d50f225633e6fa182f3.jpeg",
   
   // 调度后台地图背景
   MAP_BG: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAETTcVp4hZjhzFmCyVlmIHI_aLJ-mEG8AACKCgAAogEEFdu8zonPk-FpTsE.png",

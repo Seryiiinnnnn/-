@@ -16,6 +16,7 @@ type View = 'customer' | 'backend' | 'analytics';
 export default function App() {
   const [view, setView] = useState<View>('customer');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isNavigationVisible, setIsNavigationVisible] = useState(true);
   const [isOpening, setIsOpening] = useState(true);
   const [stats, setStats] = useState<SystemStats>({
     activeOrders: 0,
@@ -26,6 +27,7 @@ export default function App() {
   });
 
   const [orderPrefix, setOrderPrefix] = useState('TW');
+  const [targetOrderCount, setTargetOrderCount] = useState(15);
   const [orders, setOrders] = useState<Order[]>([
     {
       id: '1000',
@@ -80,6 +82,16 @@ export default function App() {
   ]);
   const orderIdCounter = useRef(1000);
 
+  const [isDriftActive, setIsDriftActive] = useState(true);
+  const [showCompletionToast, setShowCompletionToast] = useState(false);
+  const [driftInterval, setDriftInterval] = useState(1000);
+  const [driftSettings, setDriftSettings] = useState<Record<string, number>>({
+    activeOrders: 2,
+    onlineRiders: 1,
+    deliveredToday: 3,
+    completedTotal: 2
+  });
+
   const updateStat = (key: keyof SystemStats, delta: number) => {
     setStats(prev => {
       const newVal = Math.max(0, (prev[key] as number) + delta);
@@ -90,11 +102,58 @@ export default function App() {
     });
   };
 
-  // Global Simulator for Orders
+  const toggleDriftDirection = (key: string) => {
+    setDriftSettings(prev => ({
+      ...prev,
+      [key]: prev[key] * -1
+    }));
+  };
+
+  const adjustDriftStep = (key: string, delta: number) => {
+    setDriftSettings(prev => ({
+      ...prev,
+      [key]: Math.max(0, Math.abs(prev[key]) + delta) * (prev[key] >= 0 ? 1 : -1)
+    }));
+  };
+
+  // Auto-drift logic (Moved from StatsDashboard)
+  useEffect(() => {
+    if (!isDriftActive) return;
+
+    const interval = setInterval(() => {
+      Object.entries(driftSettings).forEach(([key, value]) => {
+        const delta = value as number;
+        // Large random jumps as requested (2-digit to 3-digit: 10-150 range)
+        const isReducing = delta < 0;
+        const randomMagnitude = Math.floor(Math.random() * 140) + 10;
+        const finalDelta = isReducing ? -randomMagnitude : randomMagnitude;
+        
+        updateStat(key as keyof SystemStats, finalDelta);
+      });
+    }, driftInterval);
+
+    return () => clearInterval(interval);
+  }, [isDriftActive, driftSettings, driftInterval]);
+
+  // Global Notification Logic: When map points disappear, wait 2s
+  useEffect(() => {
+    if (stats.activeOrders === 0 && stats.onlineRiders === 0 && isDriftActive) {
+      const timer = setTimeout(() => {
+        setShowCompletionToast(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowCompletionToast(false);
+    }
+  }, [stats.activeOrders, stats.onlineRiders, isDriftActive]);
+
+  // Global Simulator for Orders (Respects onlineRiders and isDriftActive)
   useEffect(() => {
     const loop = setInterval(() => {
-      // Sync logic: Only spawn if riders are online and we haven't hit the cap relative to riders
-      const maxOrders = Math.max(5, Math.floor(stats.onlineRiders / 7));
+      if (!isDriftActive) return;
+      
+      // Sync logic: Only spawn if riders are online and we haven't hit the target amount
+      const maxOrders = targetOrderCount;
       
       // If system is "down" (riders=0), clear orders and stop
       if (stats.onlineRiders === 0) {
@@ -102,7 +161,7 @@ export default function App() {
         return;
       }
 
-      if (Math.random() > 0.95 && orders.filter(o => o.status !== 'completed').length < maxOrders) {
+      if (Math.random() > 0.85 && orders.filter(o => o.status !== 'completed').length < maxOrders) {
         orderIdCounter.current += 1;
         
         // 70% chance for Jinlin Pencai order, 30% for others
@@ -171,9 +230,9 @@ export default function App() {
 
       {!isOpening && (
         <>
-          {/* View Switcher Overlay - Hidden when in Customer View as per request */}
+          {/* View Switcher Overlay - Hidden when in Customer View or when Navigation Visibility is toggled off */}
           <AnimatePresence>
-            {view !== 'customer' && (
+            {view !== 'customer' && isNavigationVisible && (
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -218,6 +277,8 @@ export default function App() {
                 <CustomerApp 
                   isDarkMode={isDarkMode}
                   setIsDarkMode={setIsDarkMode}
+                  isNavigationVisible={isNavigationVisible}
+                  onToggleNavigation={() => setIsNavigationVisible(!isNavigationVisible)}
                   onNavigate={(v) => setView(v)} 
                 />
               </motion.div>
@@ -232,10 +293,20 @@ export default function App() {
                 <BackendDashboard 
                   isDarkMode={isDarkMode}
                   setIsDarkMode={setIsDarkMode}
+                  isNavigationVisible={isNavigationVisible}
+                  onToggleNavigation={() => setIsNavigationVisible(!isNavigationVisible)}
                   propsStats={stats} 
                   propsUpdateStat={updateStat} 
                   orderPrefix={orderPrefix} 
                   onPrefixChange={setOrderPrefix} 
+                  targetOrderCount={targetOrderCount}
+                  setTargetOrderCount={setTargetOrderCount}
+                  isDriftActive={isDriftActive}
+                  setIsDriftActive={setIsDriftActive}
+                  showCompletionToast={showCompletionToast}
+                  setShowCompletionToast={setShowCompletionToast}
+                  driftSettings={driftSettings}
+                  onToggleDriftDirection={toggleDriftDirection}
                   orders={orders}
                 />
               </motion.div>
@@ -250,11 +321,22 @@ export default function App() {
                 <StatsDashboard 
                   isDarkMode={isDarkMode}
                   setIsDarkMode={setIsDarkMode}
+                  isNavigationVisible={isNavigationVisible}
+                  onToggleNavigation={() => setIsNavigationVisible(!isNavigationVisible)}
                   stats={stats} 
                   updateStat={updateStat} 
                   onBack={() => setView('backend')} 
                   orderPrefix={orderPrefix}
                   onPrefixChange={setOrderPrefix}
+                  isDriftActive={isDriftActive}
+                  setIsDriftActive={setIsDriftActive}
+                  showCompletionToast={showCompletionToast}
+                  setShowCompletionToast={setShowCompletionToast}
+                  driftSettings={driftSettings}
+                  onToggleDriftDirection={toggleDriftDirection}
+                  onAdjustDriftStep={adjustDriftStep}
+                  driftInterval={driftInterval}
+                  setDriftInterval={setDriftInterval}
                   orders={orders}
                 />
               </motion.div>
