@@ -19,7 +19,7 @@ export default function Logo({ className, size = 'md', showText = false }: LogoP
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <img 
-        src={ASSETS.LOGO} 
+        src={`${ASSETS.LOGO}?v=${Date.now()}`} 
         alt="品味 Logo" 
         className={cn("object-contain", sizeClasses[size])}
         onError={(e) => {

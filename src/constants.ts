@@ -3,7 +3,7 @@
 
 export const ASSETS = {
   // Logo 链接
-  LOGO: "https://img.sanishtech.com/u/10403b06f7b17aaeb43d52ddd89f3c2d.png", 
+  LOGO: "https://img.sanishtech.com/u/74d7f74d60d16e474719e8ab3bc3aefe.png", 
   
   // 核心产品：金林盆菜
   PENCAI: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAETTcdp4haYnmq2D1_WzTUp2MkiDIXtEQACKigAAogEEFf-_HnElCHQCzsE.png",
