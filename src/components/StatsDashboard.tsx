@@ -83,7 +83,9 @@ export default function StatsDashboard({
     setChartData(historical);
   }, []);
 
-  // Chart update logic
+  // Chart update logic - Throttled to prevent UI lag
+  const effectiveInterval = Math.max(2000, driftInterval);
+
   useEffect(() => {
     if (!isDriftActive) return;
 
@@ -97,10 +99,10 @@ export default function StatsDashboard({
         }];
         return newData;
       });
-    }, driftInterval);
+    }, effectiveInterval);
 
     return () => clearInterval(interval);
-  }, [isDriftActive, driftInterval]);
+  }, [isDriftActive, effectiveInterval]);
 
   const handleManualInput = (key: keyof SystemStats, value: string) => {
     const num = parseInt(value.replace(/,/g, ''), 10);
@@ -429,7 +431,7 @@ export default function StatsDashboard({
                <DetailStat label="全网延迟" value="14MS" status="optimal" />
                <DetailStat label="智能预测偏差" value="±0.4S" status="optimal" />
             </div>
-            <div className="font-mono text-[9px] text-zinc-600 tracking-[0.4em] uppercase">TAOWEI CORE INFRASTRUCTURE</div>
+            <div className="font-mono text-[9px] text-zinc-600 tracking-[0.4em] uppercase">PINWEI CORE INFRASTRUCTURE</div>
          </div>
       </div>
 

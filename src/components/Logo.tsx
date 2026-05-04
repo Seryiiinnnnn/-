@@ -20,7 +20,7 @@ export default function Logo({ className, size = 'md', showText = false }: LogoP
     <div className={cn("flex items-center gap-3", className)}>
       <img 
         src={ASSETS.LOGO} 
-        alt="淘味 Logo" 
+        alt="品味 Logo" 
         className={cn("object-contain", sizeClasses[size])}
         onError={(e) => {
           // Fallback if image fails to load
@@ -35,7 +35,7 @@ export default function Logo({ className, size = 'md', showText = false }: LogoP
         !showText && "hidden",
         size === 'xl' ? "text-8xl" : size === 'lg' ? "text-4xl" : "text-xl"
       )}>
-        淘味
+        品味
       </span>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard, Sun, Moon, X } from 'lucide-react';
 import Logo from './Logo';
@@ -59,16 +59,17 @@ export default function BackendDashboard({
   });
 
   const [simulationSpeed, setSimulationSpeed] = useState(() => {
-    const saved = localStorage.getItem('taowei_sim_speed');
+    const saved = localStorage.getItem('pinwei_sim_speed');
     return saved ? parseFloat(saved) : 1;
   });
   
   const [routeDensity, setRouteDensity] = useState(() => {
-    const saved = localStorage.getItem('taowei_route_density');
-    return saved ? parseInt(saved) : 6;
+    const saved = localStorage.getItem('pinwei_route_density');
+    return saved ? parseInt(saved) : 4;
   });
 
   const [routeOffset, setRouteOffset] = useState(0);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
   const [isAutoSpawning, setIsAutoSpawning] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -87,12 +88,20 @@ export default function BackendDashboard({
   };
   // Save settings when changed
   useEffect(() => {
-    localStorage.setItem('taowei_sim_speed', simulationSpeed.toString());
+    localStorage.setItem('pinwei_sim_speed', simulationSpeed.toString());
   }, [simulationSpeed]);
 
   useEffect(() => {
-    localStorage.setItem('taowei_route_density', routeDensity.toString());
+    localStorage.setItem('pinwei_route_density', routeDensity.toString());
   }, [routeDensity]);
+
+  // Global clock for labels and timers
+  useEffect(() => {
+    const clockInterval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(clockInterval);
+  }, []);
 
   // Rotation logic for routes
   useEffect(() => {
@@ -113,8 +122,8 @@ export default function BackendDashboard({
         const newRiders: Rider[] = Array.from({ length: diff }).map((_, i) => ({
           id: `rider-${prev.length + i}`,
           pos: { 
-            x: WIDTH/2 + (Math.random() - 0.5) * WIDTH * 0.7, 
-            y: HEIGHT/2 + (Math.random() - 0.5) * HEIGHT * 0.7 
+            x: Math.random() * WIDTH, 
+            y: Math.random() * HEIGHT
           },
           status: 'idle',
           velocity: { x: (Math.random() - 0.5) * 1.5, y: (Math.random() - 0.5) * 1.5 }
@@ -134,12 +143,13 @@ export default function BackendDashboard({
     }
   }, [orders, activeOrderId]);
 
-  // Simulation Loop for Rider Motion
+  // Simulation Loop for Rider Motion - Optimized frequency
   useEffect(() => {
     const loop = setInterval(() => {
       setRiders(prev => prev.map(rider => {
-        let newX = rider.pos.x + rider.velocity.x;
-        let newY = rider.pos.y + rider.velocity.y;
+        // Double the movement delta to compensate for 100ms tick (vs 50ms)
+        let newX = rider.pos.x + rider.velocity.x * 2;
+        let newY = rider.pos.y + rider.velocity.y * 2;
 
         let vx = rider.velocity.x;
         let vy = rider.velocity.y;
@@ -152,7 +162,7 @@ export default function BackendDashboard({
           velocity: { x: vx, y: vy }
         };
       }));
-    }, 50);
+    }, 100);
     return () => clearInterval(loop);
   }, []);
 
@@ -161,22 +171,34 @@ export default function BackendDashboard({
   const activeOrder = orders.find(o => o.id === activeOrderId);
   
   // Identify all "active" riders assigned to currently pending orders
-  const assignedRiderIds = new Set(
-    orders
-      .filter(o => o.status !== 'completed')
-      .map(order => {
-        if (riders.length === 0) return null;
-        return riders.reduce((prev, curr) => {
-          const dPrev = Math.hypot(prev.pos.x - order.pickupPos.x, prev.pos.y - order.pickupPos.y);
-          const dCurr = Math.hypot(curr.pos.x - order.pickupPos.x, curr.pos.y - order.pickupPos.y);
-          return dCurr < dPrev ? curr : prev;
-        }).id;
-      })
-      .filter(id => id !== null)
-  );
+  // Optimized: Pre-calculate assignments and useMemo
+  const orderAssignments = useMemo(() => {
+    if (riders.length === 0) return new Map<string, string>();
+    
+    const assignments = new Map<string, string>();
+    const activeOrders = orders.filter(o => o.status !== 'completed');
+    
+    activeOrders.forEach(order => {
+      let nearestDist = Infinity;
+      let nearestId = '';
+      
+      for (const rider of riders) {
+        const dist = Math.hypot(rider.pos.x - order.pickupPos.x, rider.pos.y - order.pickupPos.y);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestId = rider.id;
+        }
+      }
+      assignments.set(order.id, nearestId);
+    });
+    
+    return assignments;
+  }, [orders, riders]);
+
+  const assignedRiderIds = useMemo(() => new Set(orderAssignments.values()), [orderAssignments]);
 
   return (
-    <div className={cn("flex h-screen overflow-hidden font-sans transition-colors duration-500", themeClasses.bg)}>
+    <div className={cn("relative h-screen overflow-hidden font-sans transition-colors duration-500", themeClasses.bg)}>
       {/* Global Completion Notification */}
       <AnimatePresence>
         {showCompletionToast && (
@@ -218,14 +240,12 @@ export default function BackendDashboard({
         animate={{ 
           width: isSidebarOpen ? (window.innerWidth < 768 ? '85%' : 320) : 0,
           opacity: isSidebarOpen ? 1 : 0,
-          marginLeft: isSidebarOpen ? (window.innerWidth < 768 ? 0 : 24) : 0,
-          marginRight: isSidebarOpen ? 0 : 0
+          left: isSidebarOpen ? (window.innerWidth < 768 ? '7.5%' : 24) : -320
         }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          "flex flex-col backdrop-blur-xl z-40 my-6 rounded-lg overflow-hidden border transition-all duration-500", 
-          isSidebarOpen && window.innerWidth < 768 ? "absolute inset-y-6 left-4 right-4 shadow-2xl" : "relative",
-          themeClasses.glass
+          "fixed inset-y-6 flex flex-col backdrop-blur-3xl z-40 rounded-3xl overflow-hidden border transition-all duration-500 shadow-2xl", 
+          isDarkMode ? "bg-black/40 border-white/10" : "bg-white/40 border-brand-primary/10",
         )}
       >
         <div className={cn("p-6 border-b shrink-0", themeClasses.border)}>
@@ -237,9 +257,14 @@ export default function BackendDashboard({
               </div>
               <span className={cn("text-sm font-black tracking-tighter uppercase", themeClasses.textMain)}>调度中心</span>
             </div>
-            <button onClick={() => setShowSettings(!showSettings)} className="text-[#FF6B00] p-1 hover:bg-white/5 rounded transition-colors shrink-0">
-              <Settings className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => setShowSettings(!showSettings)} className="text-[#FF6B00] p-1 hover:bg-white/5 rounded transition-colors">
+                <Settings className="w-4 h-4" />
+              </button>
+              <button onClick={() => setIsSidebarOpen(false)} className="text-[#FF6B00] p-1 hover:bg-white/5 rounded transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <AnimatePresence>
             {showSettings && (
@@ -369,7 +394,7 @@ export default function BackendDashboard({
                       <p className="text-[8px] opacity-40 italic leading-tight mb-2">手动校准将应用于全局渲染引擎以确保背景参考图与地理数据对齐。</p>
                       <button 
                         onClick={() => {
-                          localStorage.removeItem('taowei_custom_map');
+                          localStorage.removeItem('pinwei_custom_map');
                           window.location.reload();
                         }}
                         className="w-full text-[8px] bg-red-500/20 text-red-500 border border-red-500/30 uppercase font-bold py-2 rounded hover:bg-red-500/30 transition-all font-mono"
@@ -468,16 +493,16 @@ export default function BackendDashboard({
                         <MapPin className="w-3 h-3" />
                         吉隆坡中心区
                       </div>
-                      <span className={cn(order.status === 'completed' ? "text-accent-green" : "text-zinc-500")}>
+                      <div className={cn(order.status === 'completed' ? "text-accent-green" : "text-zinc-500")}>
                         {order.status === 'completed' ? (
                           "已送达"
                         ) : (
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3 animate-pulse" />
-                            <LiveTimer startTime={order.timestamp} />
+                            <LiveTimer startTime={order.timestamp} now={currentTime} />
                           </div>
                         )}
-                      </span>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -490,36 +515,36 @@ export default function BackendDashboard({
         </div>
       </motion.div>
 
-      {/* Main Map Area */}
+      {/* Main Map Area - Now Background */}
       <div className={cn(
-        "flex-1 relative overflow-hidden transition-all duration-500 rounded-lg border",
-        "md:m-4 md:ml-0 md:my-6 md:mr-6 m-2 my-4 shadow-inner",
-        isDarkMode ? "bg-zinc-950 border-white/5" : "bg-white border-brand-primary/10"
+        "absolute inset-0 z-0 overflow-hidden transition-all duration-500",
+        isDarkMode ? "bg-zinc-950" : "bg-white"
       )}>
-        {/* Toggle Sidebar Button */}
+        {/* Toggle Sidebar Button - Repositioned for full screen */}
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
-            "absolute top-4 left-4 md:top-6 md:left-6 z-50 p-2 md:p-3 rounded-xl md:rounded-full border transition-all pointer-events-auto",
+            "fixed top-4 left-4 md:top-6 md:left-6 z-50 p-2 md:p-3 rounded-xl md:rounded-full border transition-all pointer-events-auto",
             isSidebarOpen 
-              ? (isDarkMode ? "bg-zinc-900 md:bg-transparent border-white/10 opacity-100 md:opacity-100 md:-translate-x-full hover:bg-white/5" : "bg-white md:bg-transparent border-brand-primary/10 opacity-100 md:opacity-100 md:-translate-x-full hover:bg-brand-primary/5")
+              ? (isDarkMode ? "bg-zinc-900 border-white/10 opacity-0 pointer-events-none" : "bg-white border-brand-primary/10 opacity-0 pointer-events-none")
               : "bg-[#FF6B00] text-white border-[#FF6B00] shadow-2xl scale-110"
           )}
         >
-          {isSidebarOpen ? <X className="w-5 h-5" /> : <LayoutDashboard className="w-5 h-5" />}
+          <LayoutDashboard className="w-5 h-5" />
         </button>
 
         {/* Map Background Image */}
-        <div className="absolute inset-0 z-0 scale-[1.02]">
+        <div className="absolute inset-0 z-0">
           <img 
-            src={localStorage.getItem('taowei_custom_map') || ASSETS.MAP_BG} 
+            src={localStorage.getItem('pinwei_custom_map') || ASSETS.MAP_BG} 
             alt="Dispatch Map"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            style={{ filter: isDarkMode ? 'brightness(0.3) contrast(1.2) saturate(0.8)' : 'brightness(1.1) contrast(0.9) saturate(0.9)' }}
             onError={(e) => {
               // If local image fails and it was the user-set one, cleanup
-              if (localStorage.getItem('taowei_custom_map')) {
-                localStorage.removeItem('taowei_custom_map');
+              if (localStorage.getItem('pinwei_custom_map')) {
+                localStorage.removeItem('pinwei_custom_map');
                 window.location.reload();
               } else {
                 // Fallback to dynamic Google Map as the ultimate backup
@@ -551,10 +576,19 @@ export default function BackendDashboard({
               <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
               <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
+            <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
             
             <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#FFFF00" />
+              <stop offset="0%" stopColor="#00E5FF" />
+              <stop offset="50%" stopColor="#007AFF" />
               <stop offset="100%" stopColor="#39ff14" />
+            </linearGradient>
+            <linearGradient id="blueGlowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#00FBFF" />
+              <stop offset="100%" stopColor="#007AFF" />
             </linearGradient>
           </defs>
           
@@ -567,16 +601,13 @@ export default function BackendDashboard({
             const activeOrders = orders.filter(o => o.status !== 'completed');
             if (activeOrders.length === 0) return null;
             
-            // Circularly select routes based on density and offset
+            // Optimized: Use pre-calculated assignments
             return Array.from({ length: Math.min(routeDensity, activeOrders.length) }).map((_, i) => {
               const orderIndex = (i + routeOffset) % activeOrders.length;
               const order = activeOrders[orderIndex];
               
-              const assignedRider = riders.length > 0 ? riders.reduce((prev, curr) => {
-                const dPrev = Math.hypot(prev.pos.x - order.pickupPos.x, prev.pos.y - order.pickupPos.y);
-                const dCurr = Math.hypot(curr.pos.x - order.pickupPos.x, curr.pos.y - order.pickupPos.y);
-                return dCurr < dPrev ? curr : prev;
-              }) : null;
+              const assignedRiderId = orderAssignments.get(order.id);
+              const assignedRider = riders.find(r => r.id === assignedRiderId);
 
               // Generate a curved path if order ID ends with a digit that is even
               const idNumeric = order.id.replace(/\D/g, '');
@@ -619,7 +650,7 @@ export default function BackendDashboard({
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 0.8 }}
                     transition={{ duration: 1 / simulationSpeed, ease: "easeOut" }}
-                    filter="url(#glow-yellow)"
+                    filter="url(#glow-blue)"
                   />
                   <motion.circle 
                     cx={order.pickupPos.x} 
@@ -664,9 +695,10 @@ export default function BackendDashboard({
             });
           })()}
 
-          {/* Rider Light Points */}
+          {/* Rider Light Points - Optimized rendering */}
           {stats.onlineRiders > 0 && riders.map(rider => {
             const isAssigned = assignedRiderIds.has(rider.id);
+            // Low performance cost: only filters on assigned riders
             return (
               <circle
                 key={rider.id}
@@ -674,21 +706,22 @@ export default function BackendDashboard({
                 cy={rider.pos.y}
                 r={isAssigned ? 8 : 4}
                 fill={isAssigned ? "#FFFF00" : "#39ff14"}
-                className={cn(
-                  "transition-all duration-300",
-                  isAssigned ? "opacity-100" : "opacity-80"
-                )}
-                filter={isAssigned ? "url(#glow-green)" : "url(#glow-green)"}
+                style={{ 
+                  opacity: isAssigned ? 1 : 0.6,
+                  transition: 'opacity 0.3s ease'
+                }}
+                filter={isAssigned ? "url(#glow-green)" : undefined}
+                className="select-none pointer-events-none"
               />
             );
           })}
         </svg>
 
-        <div className={cn("absolute bottom-6 left-8 font-mono text-[10px] opacity-50 tracking-widest z-20 hidden md:block", isDarkMode ? "text-[#FF6B00]" : "text-zinc-600")}>
+        <div className={cn("fixed bottom-6 left-8 font-mono text-[10px] opacity-50 tracking-widest z-20 hidden md:block", isDarkMode ? "text-[#FF6B00]" : "text-zinc-600")}>
            坐标: 3.1390° N | 101.6869° E | 核心节点 [在线]
         </div>
 
-        <div className="absolute top-6 right-6 hidden md:flex flex-col items-end gap-3 pointer-events-none z-20">
+        <div className="fixed top-6 right-6 hidden md:flex flex-col items-end gap-3 pointer-events-none z-20">
           <div className={cn("p-3 rounded border flex items-center gap-6 backdrop-blur-md", themeClasses.glass)}>
              <div className="text-right">
                 <p className="text-[9px] uppercase tracking-widest opacity-50">本地系统时间</p>
@@ -698,7 +731,7 @@ export default function BackendDashboard({
                 <div className={cn("text-right border-l pl-6", isDarkMode ? "border-white/10" : "border-zinc-200")}>
                   <p className="text-[9px] uppercase tracking-widest text-accent-amber">当前派送耗时</p>
                   <p className="text-sm font-bold text-accent-amber uppercase font-mono">
-                    <LiveTimer startTime={activeOrder.timestamp} pulse />
+                    <LiveTimer startTime={activeOrder.timestamp} now={currentTime} pulse />
                   </p>
                 </div>
              )}
@@ -734,7 +767,7 @@ export default function BackendDashboard({
               <div className="flex flex-col my-3">
                 <p className="font-mono text-xs text-zinc-500 uppercase tracking-widest mb-1">实时配送计时</p>
                 <div className="text-4xl font-black text-accent-amber font-mono">
-                   <LiveTimer startTime={activeOrder.timestamp} />
+                   <LiveTimer startTime={activeOrder.timestamp} now={currentTime} />
                 </div>
               </div>
               <p className="font-mono text-xl font-bold text-accent-amber my-2">智能派单中...</p>
@@ -750,26 +783,21 @@ export default function BackendDashboard({
   );
 }
 
-function LiveTimer({ startTime, pulse = false }: { startTime: number, pulse?: boolean }) {
-  const [ticks, setTicks] = useState(0);
-  
-  useEffect(() => {
-    const t = setInterval(() => setTicks(prev => prev + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+function LiveTimer({ startTime, now, pulse = false }: { startTime: number, now: number, pulse?: boolean }) {
+  const elapsed = Math.floor((now - startTime) / 1000);
   const m = Math.floor(elapsed / 60);
   const s = elapsed % 60;
 
+  const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
   return (
     <motion.span
-      key={s}
+      key={timeStr}
       initial={pulse ? { scale: 1.1, opacity: 0.8 } : false}
       animate={{ scale: 1, opacity: 1 }}
       className="inline-block"
     >
-      {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+      {timeStr}
     </motion.span>
   );
 }

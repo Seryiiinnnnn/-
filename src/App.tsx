@@ -20,14 +20,14 @@ export default function App() {
   const [isOpening, setIsOpening] = useState(true);
   const [stats, setStats] = useState<SystemStats>({
     activeOrders: 0,
-    onlineRiders: 150,
+    onlineRiders: 45,
     deliveredToday: 14282,
     avgDeliverTime: 28,
     completedTotal: 840
   });
 
-  const [orderPrefix, setOrderPrefix] = useState('TW');
-  const [targetOrderCount, setTargetOrderCount] = useState(15);
+  const [orderPrefix, setOrderPrefix] = useState('PW');
+  const [targetOrderCount, setTargetOrderCount] = useState(8);
   const [orders, setOrders] = useState<Order[]>([
     {
       id: '1000',
@@ -121,14 +121,19 @@ export default function App() {
     if (!isDriftActive) return;
 
     const interval = setInterval(() => {
-      Object.entries(driftSettings).forEach(([key, value]) => {
-        const delta = value as number;
-        // Large random jumps as requested (2-digit to 3-digit: 10-150 range)
-        const isReducing = delta < 0;
-        const randomMagnitude = Math.floor(Math.random() * 140) + 10;
-        const finalDelta = isReducing ? -randomMagnitude : randomMagnitude;
-        
-        updateStat(key as keyof SystemStats, finalDelta);
+      setStats(prev => {
+        const nextStats = { ...prev };
+        Object.entries(driftSettings).forEach(([key, value]) => {
+          const delta = value as number;
+          const isReducing = delta < 0;
+          const magnitude = Math.abs(delta);
+          const randomMagnitude = Math.floor(Math.random() * magnitude) + (magnitude > 0 ? 1 : 0);
+          const finalDelta = isReducing ? -randomMagnitude : randomMagnitude;
+          
+          const statKey = key as keyof SystemStats;
+          nextStats[statKey] = Math.max(0, (nextStats[statKey] as number) + finalDelta);
+        });
+        return nextStats;
       });
     }, driftInterval);
 
@@ -221,7 +226,7 @@ export default function App() {
               <Logo size="xl" className="mb-4" />
               <div className="flex items-center justify-center gap-2 text-brand-cream/60 tracking-[0.4em] text-[10px] font-bold uppercase transition-all">
                 <Sparkles className="w-3 h-3 text-[#FF6B00]" />
-                极速送达 淘出品味
+                极速送达 品味生活
               </div>
             </motion.div>
           </motion.div>
@@ -353,7 +358,7 @@ export default function App() {
                 <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse shadow-[0_0_8px_#39ff14]" />
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-brand-cream tracking-[0.3em] uppercase font-mono">
                    <Activity className="w-3 h-3" />
-                   淘味核心：实时安全连接
+                   品味核心：实时安全连接
                 </div>
              </motion.div>
           </div>

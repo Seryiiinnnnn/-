@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingBag, 
@@ -71,10 +71,15 @@ export default function CustomerApp({
   const [heroImage, setHeroImage] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('taowei_hero_image');
-        // If it's a relative path or the old dev path, use the imported one
-        if (!saved || saved.includes('/src/hero-pic.jpeg')) return ASSETS.HERO;
-        return saved;
+        const saved = localStorage.getItem('pinwei_hero_image');
+        // If it's a data URL (uploaded), preserve it. 
+        // Otherwise, prioritize the one in ASSETS.HERO if they don't match, 
+        // because the user likely edited constants.ts
+        if (saved && saved.startsWith('data:')) return saved;
+        
+        // If the saved one is just an old URL, or if we want to allow constants.ts to override
+        // We'll trust ASSETS.HERO as the source of truth unless it's a custom upload
+        return ASSETS.HERO;
       }
     } catch (e) {
       console.error('Failed to load hero image from localStorage', e);
@@ -88,7 +93,7 @@ export default function CustomerApp({
   // Persistence: Save to localStorage whenever heroImage or products change
   useEffect(() => {
     try {
-      localStorage.setItem('taowei_hero_image', heroImage);
+      localStorage.setItem('pinwei_hero_image', heroImage);
     } catch (e) {
       console.warn('Storage quota likely exceeded. Image might not persist.');
     }
@@ -97,7 +102,7 @@ export default function CustomerApp({
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('taowei_products');
+        const saved = localStorage.getItem('pinwei_products');
         let parsed: Product[] = saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
         
         // Data Migration: Ensure product '9' (Pencai) uses the imported asset and correctly named
@@ -119,7 +124,7 @@ export default function CustomerApp({
 
   useEffect(() => {
     try {
-      localStorage.setItem('taowei_products', JSON.stringify(products));
+      localStorage.setItem('pinwei_products', JSON.stringify(products));
     } catch (e) {
       console.warn('Storage quota likely exceeded. Product list might not persist.');
     }
@@ -127,21 +132,23 @@ export default function CustomerApp({
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const handleOrder = () => {
+  const handleOrder = useCallback(() => {
     setShowOrderNotification(true);
     // Auto hide after 8 seconds due to long content
     setTimeout(() => setShowOrderNotification(false), 8000);
-  };
+  }, []);
 
 
-  const filteredProducts = selectedCategory === '全部' 
-    ? products 
-    : products.filter(p => p.category === selectedCategory);
+  const filteredProducts = useMemo(() => {
+    return selectedCategory === '全部' 
+      ? products 
+      : products.filter(p => p.category === selectedCategory);
+  }, [products, selectedCategory]);
 
-  const handleUpdateProduct = (updated: Product) => {
+  const handleUpdateProduct = useCallback((updated: Product) => {
     setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
     setEditingProduct(null);
-  };
+  }, []);
 
   const themeClasses = {
     bg: isDarkMode ? 'bg-zinc-950 text-white' : 'bg-zinc-50 text-zinc-900',
@@ -281,7 +288,7 @@ export default function CustomerApp({
               transition={{ duration: 0.8 }}
             >
               <h2 className="text-3xl sm:text-5xl font-black tracking-tighter mb-2 leading-none uppercase text-white">
-                极速送达<br /><span className="text-brand-primary italic">淘出</span>品味
+                极速送达<br /><span className="text-brand-primary italic">品味</span>生活
               </h2>
               <button 
                 onClick={handleOrder}
@@ -310,15 +317,15 @@ export default function CustomerApp({
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
-            <AnimatePresence mode='popLayout'>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 min-h-[400px]">
+            <AnimatePresence mode='popLayout' initial={false}>
               {filteredProducts.map((product) => (
                 <motion.div
                   key={product.id}
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
                   className="group"
                 >
                   <div className={cn(
