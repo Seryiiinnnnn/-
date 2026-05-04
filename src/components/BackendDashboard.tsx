@@ -69,7 +69,12 @@ export default function BackendDashboard({
   });
 
   const [routeOffset, setRouteOffset] = useState(0);
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  
+  const [timeOffset, setTimeOffset] = useState(() => {
+    const saved = localStorage.getItem('pinwei_time_offset');
+    return saved ? parseInt(saved) : 0;
+  });
+  const [currentTime, setCurrentTime] = useState(Date.now() + timeOffset);
 
   const [isAutoSpawning, setIsAutoSpawning] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -98,10 +103,14 @@ export default function BackendDashboard({
   // Global clock for labels and timers
   useEffect(() => {
     const clockInterval = setInterval(() => {
-      setCurrentTime(Date.now());
+      setCurrentTime(Date.now() + timeOffset);
     }, 1000);
     return () => clearInterval(clockInterval);
-  }, []);
+  }, [timeOffset]);
+
+  useEffect(() => {
+    localStorage.setItem('pinwei_time_offset', timeOffset.toString());
+  }, [timeOffset]);
 
   // Rotation logic for routes
   useEffect(() => {
@@ -321,6 +330,91 @@ export default function BackendDashboard({
                              {z}
                            </button>
                          ))}
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className={cn("pt-2 border-t", themeClasses.border)}>
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">自定义系统时间</label>
+                    <div className="space-y-3">
+                       <div className="flex items-center justify-center gap-2 bg-black/20 p-3 rounded-lg border border-white/5">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-[7px] opacity-30 uppercase font-bold">Hours</span>
+                            <input 
+                              type="number"
+                              min="1"
+                              max="12"
+                              value={(() => {
+                                const d = new Date(currentTime);
+                                let h = d.getHours() % 12;
+                                return h === 0 ? 12 : h;
+                              })()}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (isNaN(val)) return;
+                                const d = new Date(currentTime);
+                                let h = d.getHours();
+                                const isPM = h >= 12;
+                                let targetH = val % 12;
+                                if (isPM) targetH += 12;
+                                d.setHours(targetH);
+                                setTimeOffset(d.getTime() - Date.now());
+                              }}
+                              className={cn("w-10 h-8 text-center text-sm font-bold font-mono rounded border transition-all", themeClasses.input)}
+                            />
+                          </div>
+                          <span className="text-xl font-bold opacity-30 self-end pb-1">:</span>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-[7px] opacity-30 uppercase font-bold">Minutes</span>
+                            <input 
+                              type="number"
+                              min="0"
+                              max="59"
+                              value={new Date(currentTime).getMinutes()}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (isNaN(val)) return;
+                                const d = new Date(currentTime);
+                                d.setMinutes(val % 60);
+                                setTimeOffset(d.getTime() - Date.now());
+                              }}
+                              className={cn("w-10 h-8 text-center text-sm font-bold font-mono rounded border transition-all", themeClasses.input)}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1 ml-1 self-end pb-0.5">
+                            <button 
+                              onClick={() => {
+                                const d = new Date(currentTime);
+                                let h = d.getHours();
+                                if (h >= 12) d.setHours(h - 12);
+                                setTimeOffset(d.getTime() - Date.now());
+                              }}
+                              className={cn("px-1.5 py-0.5 text-[8px] font-black rounded border transition-all", new Date(currentTime).getHours() < 12 ? "bg-[#FF6B00] text-white border-[#FF6B00]" : "opacity-30 border-white/10")}
+                            >
+                              AM
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const d = new Date(currentTime);
+                                let h = d.getHours();
+                                if (h < 12) d.setHours(h + 12);
+                                setTimeOffset(d.getTime() - Date.now());
+                              }}
+                              className={cn("px-1.5 py-0.5 text-[8px] font-black rounded border transition-all", new Date(currentTime).getHours() >= 12 ? "bg-[#FF6B00] text-white border-[#FF6B00]" : "opacity-30 border-white/10")}
+                            >
+                              PM
+                            </button>
+                          </div>
+                       </div>
+                       
+                       <div className="flex gap-2">
+                         <button 
+                           onClick={() => setTimeOffset(0)}
+                           className="flex-1 py-1.5 text-[8px] bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-all uppercase font-bold flex items-center justify-center gap-1"
+                         >
+                           <Zap className="w-2.5 h-2.5" />
+                           同步真实时间
+                         </button>
                        </div>
                     </div>
                   </div>
@@ -725,7 +819,7 @@ export default function BackendDashboard({
           <div className={cn("p-3 rounded border flex items-center gap-6 backdrop-blur-md", themeClasses.glass)}>
              <div className="text-right">
                 <p className="text-[9px] uppercase tracking-widest opacity-50">本地系统时间</p>
-                <p className={cn("text-sm font-bold uppercase font-mono transition-colors", themeClasses.textMain)}>{new Date().toLocaleTimeString()}</p>
+                <p className={cn("text-sm font-bold uppercase font-mono transition-colors", themeClasses.textMain)}>{new Date(currentTime).toLocaleTimeString()}</p>
              </div>
              {activeOrder && activeOrder.status !== 'completed' && (
                 <div className={cn("text-right border-l pl-6", isDarkMode ? "border-white/10" : "border-zinc-200")}>
