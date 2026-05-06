@@ -113,18 +113,9 @@ export default function CustomerApp({
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('pinwei_products');
-        let parsed: Product[] = saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-        
-        // Data Migration: Ensure product '9' (Pencai) uses the imported asset and correctly named
-        parsed = parsed.map(p => {
-          if (p.id === '9') {
-             // Always update to the latest ASSETS.PENCAI to reflect user's manual link changes
-             return { ...p, image: ASSETS.PENCAI, name: '金林盆菜' };
-          }
-          return p;
-        });
-        
-        return parsed;
+        // If the user has saved products, use them. 
+        // Note: The user can reset to INITIAL_PRODUCTS in the Backend Dashboard.
+        if (saved) return JSON.parse(saved);
       }
     } catch (e) {
       console.error('Failed to load products from localStorage', e);
