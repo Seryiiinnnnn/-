@@ -26,7 +26,7 @@ import {
 import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Category, Product } from '../types';
-import { ASSETS } from '../constants';
+import { ASSETS, INITIAL_PRODUCTS } from '../constants';
 
 const CATEGORIES: { label: string; icon: any; color: string }[] = [
   { label: '美食外卖', icon: Utensils, color: 'bg-orange-500' },
@@ -34,18 +34,6 @@ const CATEGORIES: { label: string; icon: any; color: string }[] = [
   { label: '送药上门', icon: PlusCircle, color: 'bg-red-500' },
   { label: '日用品', icon: ShoppingBag, color: 'bg-blue-500' },
   { label: '电子产品', icon: Gamepad2, color: 'bg-purple-500' },
-];
-
-const INITIAL_PRODUCTS: Product[] = [
-  { id: '1', name: '极品和牛堡', price: 32.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1000&auto=format&fit=crop', rating: 4.8 },
-  { id: '9', name: '金林盆菜', price: 399.00, category: '美食外卖', image: ASSETS.PENCAI, rating: 5.0 },
-  { id: '6', name: '混合莓果碗', price: 18.00, category: '美食外卖', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1000&auto=format&fit=crop', rating: 4.4 },
-  { id: '2', name: '新鲜有机菠菜', price: 5.50, category: '生鲜买菜', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?q=80&w=1000&auto=format&fit=crop', rating: 4.5 },
-  { id: '3', name: '强力止痛片', price: 12.00, category: '送药上门', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=1000&auto=format&fit=crop', rating: 4.9 },
-  { id: '4', name: '机械键盘 K8', price: 299.00, category: '电子产品', image: 'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?q=80&w=1000&auto=format&fit=crop', rating: 4.7 },
-  { id: '7', name: '降噪无线耳机', price: 599.00, category: '电子产品', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000&auto=format&fit=crop', rating: 4.9 },
-  { id: '5', name: '日常保湿乳', price: 45.00, category: '日用品', image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=1000&auto=format&fit=crop', rating: 4.6 },
-  { id: '8', name: '洗衣凝珠 (30pc)', price: 38.00, category: '日用品', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1000&auto=format&fit=crop', rating: 4.3 },
 ];
 
 interface CustomerAppProps {
@@ -98,8 +86,13 @@ export default function CustomerApp({
     };
 
     window.addEventListener('hero_updated', handleUpdate);
+    window.addEventListener('products_updated', () => {
+      const saved = localStorage.getItem('pinwei_products');
+      if (saved) setProducts(JSON.parse(saved));
+    });
     window.addEventListener('storage', (e) => {
       if (e.key === 'pinwei_hero_image') handleUpdate();
+      if (e.key === 'pinwei_products' && e.newValue) setProducts(JSON.parse(e.newValue));
     });
 
     return () => {

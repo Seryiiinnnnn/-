@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard, Sun, Moon, X } from 'lucide-react';
 import Logo from './Logo';
 import { cn } from '../lib/utils';
-import { Point, Rider, Order, SystemStats } from '../types';
-import { ASSETS } from '../constants';
+import { Point, Rider, Order, SystemStats, Product } from '../types';
+import { ASSETS, INITIAL_PRODUCTS } from '../constants';
 
 // Approximate Klang Valley Bounds
 const WIDTH = 1200;
@@ -85,6 +85,11 @@ export default function BackendDashboard({
     return saved || ASSETS.HERO;
   });
 
+  const [managedProducts, setManagedProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('pinwei_products');
+    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+  });
+
   const [currentTime, setCurrentTime] = useState(Date.now() + timeOffset);
 
   const [isAutoSpawning, setIsAutoSpawning] = useState(true);
@@ -132,6 +137,11 @@ export default function BackendDashboard({
     localStorage.setItem('pinwei_hero_image', heroUrl);
     window.dispatchEvent(new Event('hero_updated'));
   }, [heroUrl]);
+
+  useEffect(() => {
+    localStorage.setItem('pinwei_products', JSON.stringify(managedProducts));
+    window.dispatchEvent(new Event('products_updated'));
+  }, [managedProducts]);
 
   // Rotation logic for routes
   useEffect(() => {
@@ -384,6 +394,66 @@ export default function BackendDashboard({
                          className="w-full py-1 text-[8px] border border-white/10 rounded hover:bg-white/5 transition-all uppercase font-bold"
                        >
                          恢复所有默认图片
+                       </button>
+                    </div>
+                  </div>
+
+                  <div className={cn("pt-2 border-t", themeClasses.border)}>
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">商品配置 (食物/价格/图片)</label>
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 no-scrollbar">
+                       {managedProducts.map((product, idx) => (
+                         <div key={product.id} className={cn("p-2 rounded border bg-black/5", themeClasses.border)}>
+                            <div className="flex items-center justify-between mb-2">
+                               <span className="text-[8px] font-black italic opacity-40 uppercase tracking-tighter">ID: {product.id}</span>
+                               <span className="text-[8px] bg-[#FF6B00]/20 text-[#FF6B00] px-1 rounded">{product.category}</span>
+                            </div>
+                            <div className="space-y-2">
+                               <input 
+                                 type="text" 
+                                 value={product.name}
+                                 onChange={(e) => {
+                                   const newProducts = [...managedProducts];
+                                   newProducts[idx] = { ...product, name: e.target.value };
+                                   setManagedProducts(newProducts);
+                                 }}
+                                 placeholder="食物名称"
+                                 className={cn("w-full border rounded px-2 py-1 text-[10px] transition-colors focus:ring-1 focus:ring-[#FF6B00]", themeClasses.input)}
+                               />
+                               <div className="flex gap-2">
+                                 <input 
+                                   type="number" 
+                                   value={product.price}
+                                   onChange={(e) => {
+                                     const newProducts = [...managedProducts];
+                                     newProducts[idx] = { ...product, price: parseFloat(e.target.value) || 0 };
+                                     setManagedProducts(newProducts);
+                                   }}
+                                   placeholder="价格"
+                                   className={cn("flex-1 border rounded px-2 py-1 text-[10px] transition-colors focus:ring-1 focus:ring-[#FF6B00]", themeClasses.input)}
+                                 />
+                                 <div className="w-8 h-8 rounded border overflow-hidden shrink-0">
+                                    <img src={product.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                 </div>
+                               </div>
+                               <input 
+                                 type="text" 
+                                 value={product.image}
+                                 onChange={(e) => {
+                                   const newProducts = [...managedProducts];
+                                   newProducts[idx] = { ...product, image: e.target.value };
+                                   setManagedProducts(newProducts);
+                                 }}
+                                 placeholder="图片链接 (HTTPS)"
+                                 className={cn("w-full border rounded px-2 py-1 text-[9px] font-mono transition-colors focus:ring-1 focus:ring-[#FF6B00] opacity-60 hover:opacity-100", themeClasses.input)}
+                               />
+                            </div>
+                         </div>
+                       ))}
+                       <button 
+                         onClick={() => setManagedProducts(INITIAL_PRODUCTS)}
+                         className="w-full py-1.5 text-[8px] border border-white/10 rounded hover:bg-white/5 transition-all uppercase font-bold"
+                       >
+                         恢复所有默认商品
                        </button>
                     </div>
                   </div>
