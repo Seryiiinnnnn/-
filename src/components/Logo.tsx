@@ -9,6 +9,29 @@ interface LogoProps {
 }
 
 export default function Logo({ className, size = 'md', showText = false }: LogoProps) {
+  const [logoUrl, setLogoUrl] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pinwei_logo_url') || ASSETS.LOGO;
+    }
+    return ASSETS.LOGO;
+  });
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      const saved = localStorage.getItem('pinwei_logo_url');
+      if (saved) setLogoUrl(saved);
+    };
+
+    window.addEventListener('logo_updated', handleUpdate);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'pinwei_logo_url') handleUpdate();
+    });
+
+    return () => {
+      window.removeEventListener('logo_updated', handleUpdate);
+    };
+  }, []);
+
   const sizeClasses = {
     sm: 'h-10',
     md: 'h-14',
@@ -19,7 +42,7 @@ export default function Logo({ className, size = 'md', showText = false }: LogoP
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <img 
-        src={`${ASSETS.LOGO}?v=${Date.now()}`} 
+        src={logoUrl} 
         alt="品味 Logo" 
         className={cn("object-contain", sizeClasses[size])}
         onError={(e) => {

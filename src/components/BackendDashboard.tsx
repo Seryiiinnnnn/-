@@ -74,6 +74,17 @@ export default function BackendDashboard({
     const saved = localStorage.getItem('pinwei_time_offset');
     return saved ? parseInt(saved) : 0;
   });
+
+  const [logoUrl, setLogoUrl] = useState(() => {
+    const saved = localStorage.getItem('pinwei_logo_url');
+    return saved || ASSETS.LOGO;
+  });
+
+  const [heroUrl, setHeroUrl] = useState(() => {
+    const saved = localStorage.getItem('pinwei_hero_image');
+    return saved || ASSETS.HERO;
+  });
+
   const [currentTime, setCurrentTime] = useState(Date.now() + timeOffset);
 
   const [isAutoSpawning, setIsAutoSpawning] = useState(true);
@@ -111,6 +122,16 @@ export default function BackendDashboard({
   useEffect(() => {
     localStorage.setItem('pinwei_time_offset', timeOffset.toString());
   }, [timeOffset]);
+
+  useEffect(() => {
+    localStorage.setItem('pinwei_logo_url', logoUrl);
+    window.dispatchEvent(new Event('logo_updated'));
+  }, [logoUrl]);
+
+  useEffect(() => {
+    localStorage.setItem('pinwei_hero_image', heroUrl);
+    window.dispatchEvent(new Event('hero_updated'));
+  }, [heroUrl]);
 
   // Rotation logic for routes
   useEffect(() => {
@@ -331,6 +352,39 @@ export default function BackendDashboard({
                            </button>
                          ))}
                        </div>
+                    </div>
+                  </div>
+
+                  <div className={cn("pt-2 border-t", themeClasses.border)}>
+                    <label className="text-[9px] uppercase tracking-widest text-[#FF6B00] opacity-60 block mb-2">图片链接配置</label>
+                    <div className="space-y-3">
+                       <div className="space-y-1">
+                         <span className="text-[8px] opacity-40 uppercase font-bold px-1">Logo 链接</span>
+                         <input 
+                           type="text" 
+                           value={logoUrl} 
+                           onChange={(e) => setLogoUrl(e.target.value)}
+                           className={cn("w-full border rounded px-2 py-1.5 text-[10px] transition-colors focus:ring-1 focus:ring-[#FF6B00]", themeClasses.input)}
+                         />
+                       </div>
+                       <div className="space-y-1">
+                         <span className="text-[8px] opacity-40 uppercase font-bold px-1">首页背景图 (Hero)</span>
+                         <input 
+                           type="text" 
+                           value={heroUrl} 
+                           onChange={(e) => setHeroUrl(e.target.value)}
+                           className={cn("w-full border rounded px-2 py-1.5 text-[10px] transition-colors focus:ring-1 focus:ring-[#FF6B00]", themeClasses.input)}
+                         />
+                       </div>
+                       <button 
+                         onClick={() => {
+                            setLogoUrl(ASSETS.LOGO);
+                            setHeroUrl(ASSETS.HERO);
+                         }}
+                         className="w-full py-1 text-[8px] border border-white/10 rounded hover:bg-white/5 transition-all uppercase font-bold"
+                       >
+                         恢复所有默认图片
+                       </button>
                     </div>
                   </div>
 

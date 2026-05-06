@@ -90,6 +90,23 @@ export default function CustomerApp({
   const [isEditingHero, setIsEditingHero] = useState(false);
   const [showOrderNotification, setShowOrderNotification] = useState(false);
 
+  // Sync with BackendDashboard changes
+  useEffect(() => {
+    const handleUpdate = () => {
+      const saved = localStorage.getItem('pinwei_hero_image');
+      if (saved) setHeroImage(saved);
+    };
+
+    window.addEventListener('hero_updated', handleUpdate);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'pinwei_hero_image') handleUpdate();
+    });
+
+    return () => {
+      window.removeEventListener('hero_updated', handleUpdate);
+    };
+  }, []);
+
   // Persistence: Save to localStorage whenever heroImage or products change
   useEffect(() => {
     try {
