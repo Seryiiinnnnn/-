@@ -14,7 +14,16 @@ export const ASSETS = {
   HERO: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAET65Bp-vOPYyf2_xz6cvib6IFXnModXgAC7h4AAp0i2Fc7NRFodGUGgDsE.jpeg",
   
   // 调度后台地图背景
-  MAP_BG: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAETTcVp4hZjhzFmCyVlmIHI_aLJ-mEG8AACKCgAAogEEFdu8zonPk-FpTsE.png",
+  MAP_BG: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVBCtqISjGuad8UZnwrljwDx0zbo19LgACnyQAAktMCVXWJqZginQ1uTsE.png",
+
+  // 客服投诉页面的5张盆菜破损照片（您可以在这里直接替换为您上传得到的 https://img.remit.ee/api/file/... 链接）
+  COMPLAINT_IMAGES: [
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA85qISX41Zh2sUprQn0rwqanRuu7fwACRiQAAktMCVWQLs_2O3h-vTsE.png", // 1. 真空包装破裂
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA7xqISVQNpiAa8sLxuyvww5J1FD1pwACMyQAAktMCVWM4entERY5djsE.png", // 2. 汤汁溢漏与餐具断裂
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA75qISV1MSQRv1_nkHxMx9RDkk2dEgACOCQAAktMCVVtru-UCzdV-DsE.png", // 3. 外卖打包破损
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA8VqISWrUul5lF_ibzt_zCgH_MvWKQACPiQAAktMCVUkOlKVim9q1jsE.png", // 4. 器皿口缺角或碎坏
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA8pqISXXKf8NPiP5pjxg0xgoDyBsWgACQyQAAktMCVUmpdhArivmrjsE.png"  // 5. 运输途中翻洒污渍
+  ],
 };
 
 export const INITIAL_PRODUCTS: Product[] = [

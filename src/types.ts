@@ -41,3 +41,23 @@ export interface SystemStats {
   avgDeliverTime: number;
   completedTotal: number;
 }
+
+export interface ChatMessage {
+  id: string;
+  sender: 'customer' | 'employee';
+  text: string;
+  timestamp: number;
+  image?: string;
+}
+
+export interface ComplaintChat {
+  id: string;
+  customerName: string;
+  customerPhone?: string;
+  customerAvatar?: string;
+  status: 'pending' | 'processing' | 'replied' | 'resolved';
+  messages: ChatMessage[];
+  lastUpdated: number;
+  hasUnread: boolean;
+}
+

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard, Sun, Moon, X } from 'lucide-react';
+import { MapPin, Navigation, Package, Clock, Users, Zap, TrendingUp, AlertCircle, Plus, Minus, Settings, ShieldCheck, LayoutDashboard, Sun, Moon, X, MessageSquare } from 'lucide-react';
 import Logo from './Logo';
 import { cn } from '../lib/utils';
 import { Point, Rider, Order, SystemStats, Product } from '../types';
 import { ASSETS, INITIAL_PRODUCTS } from '../constants';
+import CustomerServicePanel from './CustomerServicePanel';
+
 
 // Approximate Klang Valley Bounds
 const WIDTH = 1200;
@@ -96,6 +98,32 @@ export default function BackendDashboard({
   const [showSettings, setShowSettings] = useState(false);
   const [isManagementUnlocked, setIsManagementUnlocked] = useState(false); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
+  const [activeSubTab, setActiveSubTab] = useState<'dispatch' | 'customerService'>('dispatch');
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const updateUnreadCount = () => {
+      try {
+        const saved = localStorage.getItem('cs_complaint_chats');
+        if (saved) {
+          const chats = JSON.parse(saved);
+          const count = chats.filter((c: any) => c.hasUnread).length;
+          setUnreadCount(count);
+        } else {
+          setUnreadCount(1);
+        }
+      } catch (_) {}
+    };
+
+    updateUnreadCount();
+    const interval = setInterval(updateUnreadCount, 2000);
+    window.addEventListener('storage', updateUnreadCount);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', updateUnreadCount);
+    };
+  }, []);
 
   const themeClasses = {
     bg: isDarkMode ? 'bg-zinc-950 text-zinc-400' : 'bg-[#fdf4e3] text-zinc-700',
@@ -306,6 +334,40 @@ export default function BackendDashboard({
               </button>
             </div>
           </div>
+
+          {/* Sub-tab Pill Switcher */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/10 rounded-xl border border-white/5 my-3 select-none">
+            <button 
+              onClick={() => setActiveSubTab('dispatch')}
+              className={cn(
+                "py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5",
+                activeSubTab === 'dispatch' 
+                  ? "bg-[#FF6B00] text-white shadow-lg shadow-[#FF6B00]/15" 
+                  : "text-zinc-400 hover:text-[#FF6B00]"
+              )}
+            >
+              <Navigation className="w-3.5 h-3.5 animate-pulse" />
+              地图调度
+            </button>
+            <button 
+              onClick={() => setActiveSubTab('customerService')}
+              className={cn(
+                "py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 relative",
+                activeSubTab === 'customerService' 
+                  ? "bg-[#FF6B00] text-white shadow-lg shadow-[#FF6B00]/15" 
+                  : "text-zinc-400 hover:text-[#FF6B00]"
+              )}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              客服中心
+              
+              {/* Unread badge alert */}
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-bounce border-2 border-zinc-950" />
+              )}
+            </button>
+          </div>
+
           <AnimatePresence>
             {showSettings && (
               <motion.div 
@@ -773,10 +835,11 @@ export default function BackendDashboard({
           <div className={cn("absolute inset-0 pointer-events-none", isDarkMode ? "bg-black/20" : "bg-white/10")} />
         </div>
 
-        <svg 
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`} 
-          className="absolute inset-0 w-full h-full select-none pointer-events-none z-10"
-        >
+        {activeSubTab === 'dispatch' && (
+          <svg 
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`} 
+            className="absolute inset-0 w-full h-full select-none pointer-events-none z-10"
+          >
            <defs>
             <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -934,26 +997,31 @@ export default function BackendDashboard({
             );
           })}
         </svg>
+        )}
 
-        <div className={cn("fixed bottom-6 left-8 font-mono text-[10px] opacity-50 tracking-widest z-20 hidden md:block", isDarkMode ? "text-[#FF6B00]" : "text-zinc-600")}>
-           坐标: 3.1390° N | 101.6869° E | 核心节点 [在线]
-        </div>
+        {activeSubTab === 'dispatch' && (
+          <div className={cn("fixed bottom-6 left-8 font-mono text-[10px] opacity-50 tracking-widest z-20 hidden md:block", isDarkMode ? "text-[#FF6B00]" : "text-zinc-600")}>
+             坐标: 3.1390° N | 101.6869° E | 核心节点 [在线]
+          </div>
+        )}
 
         <div className="fixed top-6 right-6 hidden md:flex flex-col items-end gap-3 pointer-events-none z-20">
-          <div className={cn("p-3 rounded border flex items-center gap-6 backdrop-blur-md", themeClasses.glass)}>
-             <div className="text-right">
-                <p className="text-[9px] uppercase tracking-widest opacity-50">本地系统时间</p>
-                <p className={cn("text-sm font-bold uppercase font-mono transition-colors", themeClasses.textMain)}>{new Date(currentTime).toLocaleTimeString()}</p>
-             </div>
-             {activeOrder && activeOrder.status !== 'completed' && (
-                <div className={cn("text-right border-l pl-6", isDarkMode ? "border-white/10" : "border-zinc-200")}>
-                  <p className="text-[9px] uppercase tracking-widest text-accent-amber">当前派送耗时</p>
-                  <p className="text-sm font-bold text-accent-amber uppercase font-mono">
-                    <LiveTimer startTime={activeOrder.timestamp} now={currentTime} pulse />
-                  </p>
-                </div>
-             )}
-          </div>
+          {activeSubTab === 'dispatch' && (
+            <div className={cn("p-3 rounded border flex items-center gap-6 backdrop-blur-md", themeClasses.glass)}>
+               <div className="text-right">
+                  <p className="text-[9px] uppercase tracking-widest opacity-50">本地系统时间</p>
+                  <p className={cn("text-sm font-bold uppercase font-mono transition-colors", themeClasses.textMain)}>{new Date(currentTime).toLocaleTimeString()}</p>
+               </div>
+               {activeOrder && activeOrder.status !== 'completed' && (
+                  <div className={cn("text-right border-l pl-6", isDarkMode ? "border-white/10" : "border-zinc-200")}>
+                    <p className="text-[9px] uppercase tracking-widest text-accent-amber">当前派送耗时</p>
+                    <p className="text-sm font-bold text-accent-amber uppercase font-mono">
+                      <LiveTimer startTime={activeOrder.timestamp} now={currentTime} pulse />
+                    </p>
+                  </div>
+               )}
+            </div>
+          )}
           
           {/* Global Theme Toggle for Backend */}
           <button 
@@ -968,7 +1036,7 @@ export default function BackendDashboard({
         </div>
 
         <AnimatePresence>
-          {activeOrderId && activeOrder && activeOrder.status !== 'completed' && (
+          {activeSubTab === 'dispatch' && activeOrderId && activeOrder && activeOrder.status !== 'completed' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
               animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
@@ -993,6 +1061,24 @@ export default function BackendDashboard({
                 <Zap className="w-3 h-3" />
                 路线优化已完成
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Customer Service panel overlay */}
+        <AnimatePresence>
+          {activeSubTab === 'customerService' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <CustomerServicePanel 
+                isDarkMode={isDarkMode} 
+                currentTime={currentTime} 
+                sidebarOpen={isSidebarOpen}
+              />
             </motion.div>
           )}
         </AnimatePresence>
