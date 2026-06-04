@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   MessageSquare, Send, Image as ImageIcon, Sliders, AlertTriangle, 
   User, Clock, CheckCircle, Plus, Trash2, DollarSign, Truck, 
-  Sparkles, X, Maximize2, RefreshCw, Volume2, Lock 
+  Sparkles, X, Maximize2, RefreshCw, Volume2, Lock, Bell, BellOff 
 } from 'lucide-react';
 import { ComplaintChat, ChatMessage } from '../types';
 import { cn } from '../lib/utils';
@@ -512,7 +512,33 @@ export default function CustomerServicePanel({ isDarkMode, currentTime, sidebarO
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button 
+              onClick={() => setToastStreamEnabled(!toastStreamEnabled)}
+              className={cn(
+                "p-1.5 rounded transition-transform active:scale-95 flex items-center gap-1 text-[9px] font-bold uppercase border",
+                toastStreamEnabled 
+                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/30 font-extrabold" 
+                  : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10"
+              )}
+              title={toastStreamEnabled ? "关闭实时投诉弹窗流" : "开启实时投诉弹窗流"}
+            >
+              {toastStreamEnabled ? (
+                <>
+                  <span className="relative flex h-2 w-2 mr-0.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  <Bell className="w-3 h-3 text-red-500 animate-swing" />
+                  <span className="hidden sm:inline">弹窗中</span>
+                </>
+              ) : (
+                <>
+                  <BellOff className="w-3 h-3 text-zinc-400 mr-0.5" />
+                  <span className="hidden sm:inline">弹窗静音</span>
+                </>
+              )}
+            </button>
             <button 
               onClick={generateRandomComplaint}
               className="p-1.5 bg-[#FF6B00]/10 border border-[#FF6B00]/20 hover:bg-[#FF6B00]/20 rounded text-[#FF6B00] text-[9px] font-bold uppercase transition-transform active:scale-95 flex items-center gap-1"
