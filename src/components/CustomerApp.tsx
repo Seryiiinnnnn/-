@@ -43,7 +43,9 @@ const DEFAULT_CUSTOM_SLOTS: Product[] = [
   { id: 'custom-3', name: '微波炉', price: 200.00, category: '家用电器', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEOhqIo57DGUk_QgBDTAxOTGfz5ar3gACeCYAAuKuEFUC5oWol34zpTsE.png', rating: 4.7 },
   { id: 'custom-4', name: '家居用品套餐', price: 9.90, category: '日用品', image: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=400', rating: 4.6 },
   { id: 'custom-5', name: '薄荷速干香氛洗衣凝珠', price: 19.90, category: '家居用品', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEMlqIoyzbry_dO0EgtuifgRdrF3P1wACViYAAuKuEFW2ysK3DHMe3jsE.jpeg', rating: 4.5 },
-  { id: 'custom-6', name: '环保竹木本色抑菌手帕纸', price: 6.50, category: '日用品', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEDFqIoLDtpLpjBwpIRb_6yI2bZIlQgACoiUAAuKuEFWyZYp6Y5RnGzsE.png', rating: 4.7 }
+  { id: 'custom-6', name: '环保竹木本色抑菌手帕纸', price: 6.50, category: '日用品', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEDFqIoLDtpLpjBwpIRb_6yI2bZIlQgACoiUAAuKuEFWyZYp6Y5RnGzsE.png', rating: 4.7 },
+  { id: 'custom-7', name: '有机新鲜蔬菜拼盘', price: 15.80, category: '生鲜买菜', image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=400', rating: 4.9 },
+  { id: 'custom-8', name: '家庭常用药备用箱', price: 45.00, category: '送药上门', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEU9qIpPFQDRhtWBm4nQ16gh9pjeK6gAC7yYAAuKuEFUuyz26DrEP_zsE.jpeg', rating: 4.8 }
 ];
 
 interface CustomerAppProps {
