@@ -21,7 +21,8 @@ import {
   LayoutDashboard,
   BarChart3,
   Zap,
-  Gift
+  Gift,
+  Trash2
 } from 'lucide-react';
 import Logo from './Logo';
 import { cn } from '../lib/utils';
@@ -30,10 +31,19 @@ import { ASSETS, INITIAL_PRODUCTS } from '../constants';
 
 const CATEGORIES: { label: string; icon: any; color: string }[] = [
   { label: '美食外卖', icon: Utensils, color: 'bg-orange-500' },
+  { label: '日用品', icon: ShoppingBag, color: 'bg-blue-500' },
   { label: '生鲜买菜', icon: Apple, color: 'bg-green-500' },
   { label: '送药上门', icon: PlusCircle, color: 'bg-red-500' },
-  { label: '日用品', icon: ShoppingBag, color: 'bg-blue-500' },
   { label: '电子产品', icon: Gamepad2, color: 'bg-purple-500' },
+];
+
+const DEFAULT_CUSTOM_SLOTS: Product[] = [
+  { id: 'custom-1', name: 'AA电池', price: 12.00, category: '家居用品', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEM9qIo0iufUovHxLTA2CSM0TlxGn2QACXyYAAuKuEFUGIv96c0QQCzsE.jpg', rating: 4.8 },
+  { id: 'custom-2', name: '洗漱用品套餐', price: 18.50, category: '日用品', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVENpqIo30IK0spdENgOCjpKUnbv57eQACaiYAAuKuEFU_JjcJUcHg0TsE.jpg', rating: 4.9 },
+  { id: 'custom-3', name: '微波炉', price: 200.00, category: '家用电器', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEOhqIo57DGUk_QgBDTAxOTGfz5ar3gACeCYAAuKuEFUC5oWol34zpTsE.png', rating: 4.7 },
+  { id: 'custom-4', name: '家居用品套餐', price: 9.90, category: '日用品', image: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=400', rating: 4.6 },
+  { id: 'custom-5', name: '薄荷速干香氛洗衣凝珠', price: 19.90, category: '家居用品', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEMlqIoyzbry_dO0EgtuifgRdrF3P1wACViYAAuKuEFW2ysK3DHMe3jsE.jpeg', rating: 4.5 },
+  { id: 'custom-6', name: '环保竹木本色抑菌手帕纸', price: 6.50, category: '日用品', image: 'https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVEDFqIoLDtpLpjBwpIRb_6yI2bZIlQgACoiUAAuKuEFWyZYp6Y5RnGzsE.png', rating: 4.7 }
 ];
 
 interface CustomerAppProps {
@@ -113,14 +123,18 @@ export default function CustomerApp({
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('pinwei_products');
-        // If the user has saved products, use them. 
-        // Note: The user can reset to INITIAL_PRODUCTS in the Backend Dashboard.
-        if (saved) return JSON.parse(saved);
+        // If the user has saved products, use them.
+        if (saved) {
+          const parsed = JSON.parse(saved) as Product[];
+          // Filter out existing custom slots from saved state to let coding values be the source of truth
+          const withoutCustom = parsed.filter(p => p && p.id && !p.id.startsWith('custom-'));
+          return [...withoutCustom, ...DEFAULT_CUSTOM_SLOTS];
+        }
       }
     } catch (e) {
       console.error('Failed to load products from localStorage', e);
     }
-    return INITIAL_PRODUCTS;
+    return [...INITIAL_PRODUCTS, ...DEFAULT_CUSTOM_SLOTS];
   });
 
   useEffect(() => {
@@ -147,9 +161,45 @@ export default function CustomerApp({
   }, [products, selectedCategory]);
 
   const handleUpdateProduct = useCallback((updated: Product) => {
-    setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setProducts(prev => {
+      const exists = prev.some(p => p.id === updated.id);
+      const next = exists 
+        ? prev.map(p => p.id === updated.id ? updated : p)
+        : [...prev, updated];
+      try {
+        localStorage.setItem('pinwei_products', JSON.stringify(next));
+        window.dispatchEvent(new Event('products_updated'));
+      } catch (e) {
+        console.warn('LocalStorage save failed', e);
+      }
+      return next;
+    });
     setEditingProduct(null);
   }, []);
+
+  const handleDeleteProduct = useCallback((id: string) => {
+    setProducts(prev => {
+      const next = prev.filter(p => p.id !== id);
+      try {
+        localStorage.setItem('pinwei_products', JSON.stringify(next));
+        window.dispatchEvent(new Event('products_updated'));
+      } catch (e) {
+        console.warn('LocalStorage save failed', e);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleCreateProductInit = useCallback(() => {
+    setEditingProduct({
+      id: `custom-${Date.now()}`,
+      name: '全新自定义商品',
+      price: 10.00,
+      category: selectedCategory === '全部' ? '美食外卖' : selectedCategory,
+      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400',
+      rating: 4.8
+    });
+  }, [selectedCategory]);
 
   const themeClasses = {
     bg: isDarkMode ? 'bg-zinc-950 text-white' : 'bg-zinc-50 text-zinc-900',
@@ -310,11 +360,46 @@ export default function CustomerApp({
           )}
         </section>
 
+        {/* Category Selector Tabs Bar */}
+        <div className="flex flex-wrap items-center gap-2 mb-8 bg-black/5 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
+          <button
+            onClick={() => setSelectedCategory('全部')}
+            className={cn(
+              "px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
+              selectedCategory === '全部'
+                ? "bg-[#FF6B00] text-white shadow-lg shadow-orange-500/20"
+                : isDarkMode ? "bg-white/5 text-zinc-300 hover:bg-white/10" : "bg-white text-zinc-700 hover:bg-zinc-100 shadow-sm"
+            )}
+          >
+            全部推荐
+          </button>
+          {CATEGORIES.map((cat) => {
+            const IconComponent = cat.icon;
+            return (
+              <button
+                key={cat.label}
+                onClick={() => setSelectedCategory(cat.label)}
+                className={cn(
+                  "px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer",
+                  selectedCategory === cat.label
+                    ? "bg-[#FF6B00] text-white shadow-lg shadow-orange-500/20"
+                    : isDarkMode ? "bg-white/5 text-zinc-300 hover:bg-white/10" : "bg-white text-zinc-700 hover:bg-zinc-100 shadow-sm"
+                )}
+              >
+                <IconComponent className="w-3.5 h-3.5" />
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Product Grid - Online Shopping Style (2 cols on mobile) */}
         <section>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className={cn("text-lg font-black tracking-tight uppercase", isDarkMode ? "text-brand-cream" : "text-zinc-900")}>
-              {selectedCategory} <span className="text-brand-primary">推荐</span>
+          {/* Header containing product list title */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h3 className={cn("text-lg font-black tracking-tight uppercase flex items-center gap-2", isDarkMode ? "text-brand-cream" : "text-zinc-900")}>
+              <span>{selectedCategory}</span>
+              <span className="text-brand-primary">推荐专区</span>
             </h3>
           </div>
 
@@ -342,14 +427,26 @@ export default function CustomerApp({
                     />
                     
                     {/* Overlay Buttons */}
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10">
                       {isEditMode && (
-                        <button 
-                          onClick={() => setEditingProduct(product)}
-                          className="bg-brand-primary text-black p-2 rounded-full shadow-lg"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => setEditingProduct(product)}
+                            className="bg-[#FF6B00] hover:bg-[#FF6B00]/90 text-white p-2 rounded-full shadow-lg transform hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                            title="编辑商品"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          {product.id !== '9' && (
+                            <button 
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-lg transform hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                              title="删除此商品格子"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -542,7 +639,7 @@ export default function CustomerApp({
               className={cn("relative w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl border", themeClasses.card)}
             >
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-black italic uppercase italic tracking-tighter">自定义单品</h3>
+                <h3 className="text-2xl font-black italic uppercase tracking-tighter">商品格子配置</h3>
                 <button onClick={() => setEditingProduct(null)} className="p-2 hover:bg-white/5 rounded-full">
                   <X className="w-6 h-6" />
                 </button>
@@ -550,7 +647,7 @@ export default function CustomerApp({
 
               <div className="space-y-6">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-2">单品名称</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-2">商品名称</label>
                   <input 
                     type="text" 
                     value={editingProduct.name}
@@ -579,6 +676,26 @@ export default function CustomerApp({
                       onChange={(e) => setEditingProduct({ ...editingProduct, rating: parseFloat(e.target.value) || 0 })}
                       className={cn("w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-brand-primary font-bold", themeClasses.input)}
                     />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-2">商品品类</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['美食外卖', '日用品'].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setEditingProduct({ ...editingProduct, category: cat })}
+                        className={cn(
+                          "py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+                          editingProduct.category === cat
+                            ? "bg-[#FF6B00] border-transparent text-white shadow-md scale-[1.02]"
+                            : isDarkMode ? "bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                        )}
+                      >
+                        {cat}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <div>

@@ -16,13 +16,19 @@ export const ASSETS = {
   // 调度后台地图背景
   MAP_BG: "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVBCtqISjGuad8UZnwrljwDx0zbo19LgACnyQAAktMCVXWJqZginQ1uTsE.png",
 
-  // 客服投诉页面的5张盆菜破损照片（您可以在这里直接替换为您上传得到的 https://img.remit.ee/api/file/... 链接）
+  // 客服投诉页面的11张盆菜破损照片（您可以在这里直接替换为您上传得到的 https://img.remit.ee/api/file/... 链接）
   COMPLAINT_IMAGES: [
     "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA85qISX41Zh2sUprQn0rwqanRuu7fwACRiQAAktMCVWQLs_2O3h-vTsE.png", // 1. 真空包装破裂
     "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA7xqISVQNpiAa8sLxuyvww5J1FD1pwACMyQAAktMCVWM4entERY5djsE.png", // 2. 汤汁溢漏与餐具断裂
     "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA75qISV1MSQRv1_nkHxMx9RDkk2dEgACOCQAAktMCVVtru-UCzdV-DsE.png", // 3. 外卖打包破损
     "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA8VqISWrUul5lF_ibzt_zCgH_MvWKQACPiQAAktMCVUkOlKVim9q1jsE.png", // 4. 器皿口缺角或碎坏
-    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA8pqISXXKf8NPiP5pjxg0xgoDyBsWgACQyQAAktMCVUmpdhArivmrjsE.png"  // 5. 运输途中翻洒污渍
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVA8pqISXXKf8NPiP5pjxg0xgoDyBsWgACQyQAAktMCVUmpdhArivmrjsE.png", // 5. 运输途中翻洒污渍
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVDy5qInpOOsB37Y5FWCRitd1YqPGm1gACjCQAAuKuEFXIDfMr1CjjSzsE.jpeg", // 6. 食物发霉，包装烂掉
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVDzdqInqNNZsIxAIGVkBj402MGrHo2gAClSQAAuKuEFUizt544w_PNTsE.jpeg", // 7. 盆菜变质
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVDzpqInqyCeOVP8uZXflv2ZsC5QyxiAACmiQAAuKuEFUHVGSl6s5IQjsE.jpeg",  // 8. 盆菜受潮，变质，包装坏掉
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVDzxqInrNacau8rvdn_8ktbZTWLFOpQACnCQAAuKuEFWTpXtsBFnHEDsE.jpeg", // 9. 包装被雨水淋坏，真空包装破裂，汤汁溢出来
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVD1lqIntrjZvkAAFWTFDBv0NUIqdgYYAAArkkAALirhBVbaN_Nn25kZ07BA.jpeg", // 10. 盆菜被挤压坏掉
+    "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEVD1tqInuO3K_MAY18FGtP_imkZiPKSgACuyQAAuKuEFUkIpAWOrdn0zsE.jpeg"  // 11. 食物变质，真空包装破裂，外包装撕裂汤汁溢出污损
   ],
 };
 
